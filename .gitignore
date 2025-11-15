@@ -1,0 +1,57 @@
+# IDEs and Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# OS Files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Temporary Files
+*.tmp
+*.temp
+*.log
+*.cache
+
+# Build and Distribution
+build/
+dist/
+out/
+target/
+
+# Dependencies
+node_modules/
+vendor/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+ENV/
+
+# Java
+*.class
+*.jar
+*.war
+*.ear
+
+# Notes and Drafts
+*.draft
+*.backup
+*_backup.*
+
+# Personal Notes (if you want to keep local notes private)
+personal_notes/
+private/
+
+# Generated Files
+*.pdf.tmp
+*.md.backup
