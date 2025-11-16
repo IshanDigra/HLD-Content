@@ -2,240 +2,524 @@
 
 [![GitHub](https://img.shields.io/badge/GitHub-IshanDigra-blue)](https://github.com/IshanDigra)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Last Updated](https://img.shields.io/badge/Updated-November%202025-brightgreen)]()
 
-A comprehensive, well-structured repository containing detailed notes and resources for mastering High-Level Design (HLD) and System Design concepts. Perfect for interview preparation, learning distributed systems, and understanding scalable architecture patterns.
+A comprehensive, production-grade repository containing detailed notes and resources for mastering High-Level Design and System Design concepts. Perfect for interview preparation, learning distributed systems, and understanding scalable architecture patterns.
 
-## 📚 Table of Contents
+---
+
+## Table of Contents
 
 - [About](#about)
-- [Repository Structure](#repository-structure)
+- [Repository Architecture](#repository-architecture)
+- [Complete Curriculum](#complete-curriculum)
+- [Learning Paths](#learning-paths)
 - [Getting Started](#getting-started)
-- [Learning Path](#learning-path)
-- [Topics Covered](#topics-covered)
 - [How to Use This Repository](#how-to-use-this-repository)
 - [Contributing](#contributing)
 - [Resources](#resources)
 - [License](#license)
 
-## 🎯 About
+---
 
-This repository serves as a complete reference guide for system design concepts, from foundational principles to advanced distributed system patterns. Each topic is organized into dedicated folders with detailed notes, examples, and practical insights.
+## About
 
-**Target Audience:**
+This repository serves as a complete reference guide for system design concepts, from foundational principles to advanced distributed system patterns. Each topic is meticulously organized into dedicated folders with detailed notes, examples, diagrams, and practical insights.
+
+**Target Audience**
+
 - Software engineers preparing for system design interviews
-- Backend developers looking to understand scalable architectures
+- Backend developers building scalable architectures
 - Students learning distributed systems
-- Anyone interested in building large-scale applications
-
-## 📁 Repository Structure
-
-```
-HLD-Content/
-├── 01-introduction/               # System design fundamentals
-├── 02-core-concepts/              # Essential building blocks
-├── 03-networking/                 # Network protocols and concepts
-├── 04-api-fundamentals/           # API design patterns
-├── 05-databases-and-storage/      # Database concepts
-├── 06-database-internals/         # Database deep dive
-├── 07-database-scaling-techniques/ # Scaling databases
-├── 08-caching/                    # Caching strategies
-├── 09-asynchronous-communications/ # Async patterns
-├── 10-tradeoffs/                  # Design tradeoffs
-├── 11-distributed-system-concepts/ # Distributed systems
-├── 12-architectural-patterns/     # Architecture patterns
-├── 13-microservices/              # Microservices design
-├── 14-big-data-processing/        # Big data systems
-├── 15-observability/              # Monitoring and logging
-├── 16-security/                   # Security patterns
-├── 17-interview-tips/             # Interview preparation
-├── 18-interview-questions/        # Practice problems
-└── Archive/                       # Historical content
-```
-
-## 🚀 Getting Started
-
-### Clone the Repository
-
-```bash
-git clone https://github.com/IshanDigra/HLD-Content.git
-cd HLD-Content
-```
-
-### Prerequisites
-
-- Basic understanding of:
-  - Programming fundamentals
-  - Data structures and algorithms
-  - Computer networks
-  - Database basics
-
-### Recommended Tools
-
-- Markdown viewer (VS Code, Typora, or any text editor)
-- Draw.io or similar tool for creating architecture diagrams
-- Git for version control
-
-## 📖 Learning Path
-
-### Beginner Path (4-6 weeks)
-
-1. **Week 1-2:** Introduction and Core Concepts
-   - Start with `01-introduction/`
-   - Move to `02-core-concepts/`
-   - Understand `03-networking/`
-
-2. **Week 3-4:** Data Layer
-   - Study `05-databases-and-storage/`
-   - Learn `08-caching/`
-   - Explore `10-tradeoffs/`
-
-3. **Week 5-6:** APIs and Communication
-   - Review `04-api-fundamentals/`
-   - Understand `09-asynchronous-communications/`
-   - Practice with `17-interview-tips/`
-
-### Intermediate Path (6-8 weeks)
-
-1. **Database Mastery**
-   - Deep dive into `06-database-internals/`
-   - Master `07-database-scaling-techniques/`
-
-2. **Distributed Systems**
-   - Study `11-distributed-system-concepts/`
-   - Learn `12-architectural-patterns/`
-
-3. **Modern Architecture**
-   - Explore `13-microservices/`
-   - Understand `15-observability/`
-   - Review `16-security/`
-
-### Advanced Path (4-6 weeks)
-
-1. **Big Data and Scale**
-   - Master `14-big-data-processing/`
-   - Practice real-world scenarios
-
-2. **Interview Preparation**
-   - Complete `18-interview-questions/`
-   - Mock interviews and practice
-
-## 📋 Topics Covered
-
-### Core Concepts
-- Scalability (Horizontal vs Vertical)
-- Load Balancing
-- CAP Theorem
-- Consistency Patterns
-- Availability Patterns
-
-### Networking
-- TCP/IP, HTTP/HTTPS
-- WebSockets, gRPC
-- DNS, CDN
-- Proxies and Load Balancers
-
-### Databases
-- SQL vs NoSQL
-- ACID vs BASE
-- Sharding and Partitioning
-- Replication strategies
-- Indexing and Query Optimization
-
-### System Design Patterns
-- Microservices Architecture
-- Event-Driven Architecture
-- CQRS and Event Sourcing
-- Saga Pattern
-- Circuit Breaker
-
-### Distributed Systems
-- Consensus Algorithms (Paxos, Raft)
-- Distributed Transactions
-- Message Queues
-- Service Discovery
-- Rate Limiting
-
-### Observability & Operations
-- Monitoring and Alerting
-- Distributed Tracing
-- Log Aggregation
-- Metrics Collection
-
-## 💡 How to Use This Repository
-
-### For Interview Preparation
-
-1. Follow the learning path sequentially
-2. Focus on `17-interview-tips/` and `18-interview-questions/`
-3. Practice whiteboarding common design patterns
-4. Time yourself solving practice problems
-
-### For Self-Learning
-
-1. Pick topics based on your interests or gaps
-2. Take notes and create your own examples
-3. Build small projects implementing concepts
-4. Refer back to notes while working on projects
-
-### For Quick Reference
-
-1. Use the Table of Contents to jump to specific topics
-2. Each folder contains a README with overview
-3. Search for specific concepts using your editor
-
-## 🤝 Contributing
-
-Contributions are welcome! If you'd like to improve the notes or add new content:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/improvement`)
-3. Commit your changes (`git commit -am 'Add new content'`)
-4. Push to the branch (`git push origin feature/improvement`)
-5. Open a Pull Request
-
-### Contribution Guidelines
-
-- Follow the existing folder structure
-- Use clear, concise Markdown formatting
-- Include examples and diagrams where helpful
-- Add references to authoritative sources
-- Ensure content is technically accurate
-
-## 📚 Resources
-
-### Books
-- **Designing Data-Intensive Applications** by Martin Kleppmann
-- **System Design Interview** by Alex Xu
-- **Building Microservices** by Sam Newman
-
-### Online Resources
-- [System Design Primer](https://github.com/donnemartin/system-design-primer)
-- [High Scalability Blog](http://highscalability.com/)
-- [AWS Architecture Blog](https://aws.amazon.com/blogs/architecture/)
-
-### Practice Platforms
-- LeetCode System Design
-- Exponent
-- Pramp
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## ✨ Acknowledgments
-
-- Inspired by real-world system design challenges
-- Compiled from various industry resources and best practices
-- Thanks to the open-source community for continuous learning
-
-## 📧 Contact
-
-**Ishan Digra**
-- GitHub: [@IshanDigra](https://github.com/IshanDigra)
-- LinkedIn: [Connect with me](https://www.linkedin.com/in/ishan-digra/)
+- Technical leads designing large-scale applications
+- Anyone passionate about system architecture
 
 ---
 
-⭐ If you find this repository helpful, please consider giving it a star!
+## Repository Architecture
 
-**Last Updated:** November 2025
+```
+HLD-Content/
+├── 01-introduction/               
+├── 02-core-concepts/              
+├── 03-networking/                 
+├── 04-api-fundamentals/           
+├── 05-databases-and-storage/      
+├── 06-database-internals/         
+├── 07-database-scaling-techniques/
+├── 08-caching/                    
+├── 09-asynchronous-communications/
+├── 10-tradeoffs/                  
+├── 11-distributed-system-concepts/
+├── 12-architectural-patterns/     
+├── 13-microservices/              
+├── 14-big-data-processing/        
+├── 15-observability/              
+├── 16-security/                   
+├── 17-interview-tips/             
+├── 18-interview-questions/        
+└── Archive/                       
+```
+
+---
+
+## Complete Curriculum
+
+### 01. Introduction
+
+**Foundation of System Design Concepts**
+
+| Topic | Description |
+|-------|-------------|
+| What is System Design | Core principles and design philosophy |
+| Top 30 System Design Concepts | Essential concepts every engineer should know |
+| System Design Interviews | Approach, framework, and best practices |
+
+### 02. Core Concepts
+
+**Building Blocks of Scalable Systems**
+
+| Topic | Description |
+|-------|-------------|
+| Scalability | Horizontal and vertical scaling strategies |
+| Availability | High availability patterns and techniques |
+| Reliability | Fault tolerance and system reliability |
+| Consistency Models | Strong, eventual, and causal consistency |
+| CAP Theorem | Trade-offs in distributed systems |
+| Consistent Hashing | Load distribution and data partitioning |
+| Latency vs Throughput | Performance optimization fundamentals |
+| Single Point of Failure | Identifying and eliminating SPOFs |
+
+### 03. Networking
+
+**Network Protocols and Infrastructure**
+
+| Topic | Description |
+|-------|-------------|
+| OSI Model | Seven layers of network architecture |
+| IP Address | IPv4, IPv6, and address management |
+| Domain Name System | DNS resolution and architecture |
+| Proxy vs Reverse Proxy | Forward and reverse proxy patterns |
+| HTTP/HTTPS | Protocol fundamentals and security |
+| TCP vs UDP | Connection-oriented vs connectionless protocols |
+| Load Balancers | Traffic distribution mechanisms |
+| Load Balancing Algorithms | Round-robin, least connections, IP hash |
+| Checksums | Data integrity verification |
+
+### 04. API Fundamentals
+
+**API Design and Communication Patterns**
+
+| Topic | Description |
+|-------|-------------|
+| What is an API | API concepts and best practices |
+| Data Formats | JSON, XML, Protocol Buffers |
+| API Architectural Styles | REST, GraphQL, gRPC, SOAP |
+| WebSockets | Real-time bidirectional communication |
+| Webhooks | Event-driven HTTP callbacks |
+| WebRTC | Peer-to-peer communication |
+| API Gateways | API management and routing |
+| Rate Limiting | Traffic control and throttling |
+| Idempotency | Safe retry mechanisms |
+
+### 05. Databases and Storage
+
+**Data Management and Persistence**
+
+| Topic | Description |
+|-------|-------------|
+| Database Types | Relational, document, key-value, graph |
+| ACID Transactions | Atomicity, Consistency, Isolation, Durability |
+| SQL vs NoSQL | Choosing the right database |
+| Object Storage | S3, blob storage patterns |
+| Query Optimization | Indexing and query performance |
+| Bloom Filters | Probabilistic data structures |
+| Quad Tree | Spatial indexing and geolocation |
+| Redis Use Cases | Caching, session storage, pub/sub |
+
+### 06. Database Internals
+
+**Deep Dive into Database Architecture**
+
+| Topic | Description |
+|-------|-------------|
+| B-Trees and B+ Trees | Index data structures |
+| LSM Trees | Log-structured merge trees |
+| Database Durability | Write-ahead logging and persistence |
+| Data Structures in Distributed Databases | Consistency and replication structures |
+
+### 07. Database Scaling Techniques
+
+**Scaling Data Layer**
+
+| Topic | Description |
+|-------|-------------|
+| Indexing | Primary, secondary, composite indexes |
+| Sharding | Horizontal partitioning strategies |
+| Vertical Partitioning | Column-based data separation |
+| Sharding vs Partitioning | Comparative analysis |
+| Replication | Master-slave, multi-master patterns |
+| Connection Pooling | Database connection management |
+| Denormalization | Trading normalization for performance |
+| Data Compression | Storage optimization techniques |
+
+### 08. Caching
+
+**Performance Optimization Through Caching**
+
+| Topic | Description |
+|-------|-------------|
+| What is Caching | Caching fundamentals |
+| Read-Through vs Write-Through Cache | Caching patterns |
+| Caching Strategies | Cache-aside, read-through, write-through |
+| Cache Eviction Policies | LRU, LFU, FIFO, LIFO |
+| Distributed Caching | Redis, Memcached architectures |
+| Content Delivery Network | Edge caching and CDN |
+
+### 09. Asynchronous Communications
+
+**Event-Driven and Message-Based Systems**
+
+| Topic | Description |
+|-------|-------------|
+| Pub/Sub | Publish-subscribe pattern |
+| Message Queues | RabbitMQ, Kafka, SQS |
+| Change Data Capture | Database change streaming |
+
+### 10. Tradeoffs
+
+**Design Decisions and Comparisons**
+
+| Topic | Description |
+|-------|-------------|
+| Vertical vs Horizontal Scaling | Scaling strategy comparison |
+| Concurrency vs Parallelism | Concurrent execution models |
+| Long Polling vs WebSockets | Real-time communication patterns |
+| Stateful vs Stateless Architecture | State management approaches |
+| Strong vs Eventual Consistency | Consistency guarantees |
+| Push vs Pull Architecture | Data flow patterns |
+| Monolith vs Microservices | Architecture style comparison |
+| Synchronous vs Asynchronous Communications | Communication patterns |
+| REST vs GraphQL | API paradigm comparison |
+
+### 11. Distributed System Concepts
+
+**Advanced Distributed Computing**
+
+| Topic | Description |
+|-------|-------------|
+| Heartbeats | Health monitoring and failure detection |
+| Consensus Algorithms | Paxos, Raft, Byzantine fault tolerance |
+| Leader Election | Distributed coordination |
+| Distributed Transactions | Two-phase commit, Saga pattern |
+| Gossip Protocol | Peer-to-peer communication |
+| Two-Phase Commit Protocol | Distributed transaction management |
+| Three-Phase Commit | Enhanced transaction protocol |
+| Vector Clocks | Distributed event ordering |
+| CRDTs | Conflict-free replicated data types |
+| Handling Failures | Fault tolerance strategies |
+
+### 12. Architectural Patterns
+
+**System Architecture Styles**
+
+| Topic | Description |
+|-------|-------------|
+| Client-Server Architecture | Traditional client-server model |
+| Microservices Architecture | Distributed service-oriented design |
+| Serverless Architecture | Function-as-a-service patterns |
+| Event-Driven Architecture | Event sourcing and CQRS |
+| Peer-to-Peer Architecture | Decentralized systems |
+
+### 13. Microservices
+
+**Microservices Patterns and Practices**
+
+| Topic | Description |
+|-------|-------------|
+| Service Discovery | Service registry and discovery |
+| Sidecar Pattern | Auxiliary service containers |
+| Circuit Breaker Pattern | Failure isolation and recovery |
+| Saga Pattern | Distributed transaction management |
+| Bulkhead Pattern | Resource isolation |
+| Service Mesh | Inter-service communication layer |
+
+### 14. Big Data Processing
+
+**Large-Scale Data Processing**
+
+| Topic | Description |
+|-------|-------------|
+| Batch vs Stream Processing | Processing paradigms |
+| ETL Pipelines | Extract, Transform, Load workflows |
+| MapReduce | Distributed data processing |
+| Data Lakes | Centralized data repositories |
+| Data Warehousing | Analytical data storage |
+
+### 15. Observability
+
+**Monitoring and System Health**
+
+| Topic | Description |
+|-------|-------------|
+| Logging | Structured logging and log aggregation |
+| Alert and Monitoring | Metrics, dashboards, alerting |
+| Chaos Engineering | Resilience testing |
+
+### 16. Security
+
+**Security Patterns and Protocols**
+
+| Topic | Description |
+|-------|-------------|
+| Authentication and Authorization | Identity and access management |
+| JWT | JSON Web Tokens |
+| Session-Based Authentication | Server-side session management |
+| OAuth/OAuth2 | Delegated authorization |
+| SSL/TLS | Transport layer security |
+| RBAC | Role-based access control |
+
+### 17. Interview Tips
+
+**Interview Preparation Strategies**
+
+Comprehensive guide to tackling system design interviews, including framework, communication strategies, and common pitfalls.
+
+### 18. Interview Questions
+
+**Practice Problems by Difficulty**
+
+| Difficulty | Description |
+|------------|-------------|
+| Easy | Foundational system design problems |
+| Medium | Intermediate complexity designs |
+| Hard | Complex, large-scale system challenges |
+
+---
+
+## Learning Paths
+
+### Beginner Track (4-6 weeks)
+
+**Focus:** Fundamentals and Core Concepts
+
+**Week 1-2: Foundation**
+- 01-introduction (All topics)
+- 02-core-concepts (Scalability, Availability, Reliability, Consistency Models)
+- 03-networking (OSI Model, HTTP/HTTPS, TCP vs UDP)
+
+**Week 3-4: Data Layer**
+- 05-databases-and-storage (Database Types, SQL vs NoSQL, ACID)
+- 08-caching (What is Caching, Caching Strategies)
+- 10-tradeoffs (Vertical vs Horizontal Scaling, Stateful vs Stateless)
+
+**Week 5-6: APIs and Communication**
+- 04-api-fundamentals (What is an API, REST, WebSockets)
+- 09-asynchronous-communications (Message Queues, Pub/Sub)
+- 17-interview-tips
+
+### Intermediate Track (6-8 weeks)
+
+**Focus:** Advanced Concepts and Patterns
+
+**Weeks 1-2: Database Mastery**
+- 06-database-internals (All topics)
+- 07-database-scaling-techniques (All topics)
+
+**Weeks 3-4: Distributed Systems**
+- 11-distributed-system-concepts (Consensus, Leader Election, Distributed Transactions)
+- 10-tradeoffs (Strong vs Eventual Consistency, Sync vs Async)
+
+**Weeks 5-6: Modern Architecture**
+- 12-architectural-patterns (All topics)
+- 13-microservices (All patterns)
+
+**Weeks 7-8: Operations**
+- 15-observability (All topics)
+- 16-security (All topics)
+
+### Advanced Track (4-6 weeks)
+
+**Focus:** Large-Scale Systems and Interview Preparation
+
+**Weeks 1-2: Big Data**
+- 14-big-data-processing (All topics)
+- Review 08-caching (Distributed Caching, CDN)
+
+**Weeks 3-4: Real-World Scenarios**
+- 18-interview-questions (Easy problems)
+- 18-interview-questions (Medium problems)
+
+**Weeks 5-6: Mastery**
+- 18-interview-questions (Hard problems)
+- Mock interviews and practice
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- Basic programming knowledge
+- Understanding of data structures and algorithms
+- Familiarity with computer networks
+- Database fundamentals
+
+### Installation
+
+```bash
+# Clone the repository
+
+git clone https://github.com/IshanDigra/HLD-Content.git
+
+# Navigate to the directory
+cd HLD-Content
+
+# Start learning!
+```
+
+### Recommended Tools
+
+- **Markdown Viewer:** VS Code, Typora, or Obsidian
+- **Diagramming:** Draw.io, Excalidraw, Mermaid
+- **Version Control:** Git
+
+---
+
+## How to Use This Repository
+
+### For Interview Preparation
+
+1. Follow the recommended learning path sequentially
+2. Focus on 17-interview-tips and 18-interview-questions
+3. Practice whiteboarding designs on paper
+4. Time yourself solving problems
+5. Review solutions and optimize designs
+
+### For Self-Learning
+
+1. Browse topics based on interests or knowledge gaps
+2. Deep dive into specific areas
+3. Build small projects implementing concepts
+4. Refer back while working on production systems
+
+### For Quick Reference
+
+1. Use the comprehensive table of contents
+2. Each folder contains detailed README with overview
+3. Search for specific concepts using editor search
+4. Cross-reference related topics
+
+---
+
+## Contributing
+
+Contributions are highly encouraged! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
+
+### Ways to Contribute
+
+- Add new topics or sections
+- Improve existing content
+- Add diagrams and visualizations
+- Fix typos and errors
+- Share real-world examples
+- Suggest additional resources
+
+### Contribution Process
+
+```bash
+# Fork the repository
+# Create a feature branch
+git checkout -b feature/add-new-content
+
+# Make your changes
+git add .
+git commit -m "Add detailed notes on [topic]"
+
+# Push and create pull request
+git push origin feature/add-new-content
+```
+
+---
+
+## Resources
+
+### Essential Books
+
+| Book | Author | Focus Area |
+|------|--------|------------|
+| Designing Data-Intensive Applications | Martin Kleppmann | Distributed Systems |
+| System Design Interview Vol 1 & 2 | Alex Xu | Interview Preparation |
+| Building Microservices | Sam Newman | Microservices |
+| Database Internals | Alex Petrov | Database Design |
+
+### Online Platforms
+
+- [System Design Primer](https://github.com/donnemartin/system-design-primer)
+- [High Scalability Blog](http://highscalability.com/)
+- [AWS Architecture Blog](https://aws.amazon.com/blogs/architecture/)
+- [Microsoft Azure Architecture](https://docs.microsoft.com/en-us/azure/architecture/)
+
+### Practice Platforms
+
+- LeetCode System Design
+- Exponent
+- Pramp
+- Interviewing.io
+
+---
+
+## Additional Materials
+
+### Included Resources
+
+- **HLD Notes_Links.pdf** - Curated collection of external resources
+- **TEMPLATE.md** - Standardized template for new topics
+- **Offset and Cursor Pagination.pdf** - Detailed pagination strategies
+- **Video_Transcoding.pdf** - Video processing architecture
+
+---
+
+## Repository Statistics
+
+| Metric | Count |
+|--------|-------|
+| Main Sections | 18 |
+| Total Topics | 100+ |
+| Difficulty Levels | 3 (Easy, Medium, Hard) |
+| Interview Questions | Multiple per difficulty |
+| Last Updated | November 2025 |
+
+---
+
+## Acknowledgments
+
+- Inspired by real-world system design challenges at scale
+- Compiled from industry best practices and authoritative sources
+- Community-driven improvements and contributions
+- Open-source learning philosophy
+
+---
+
+## Connect
+
+**Ishan Digra**
+
+- GitHub: [@IshanDigra](https://github.com/IshanDigra)
+- LinkedIn: [Ishan Digra](https://www.linkedin.com/in/ishan-digra/)
+
+---
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+**Star this repository if you find it helpful!**
+
+---
+
+**Last Updated:** November 16, 2025
+
+---
