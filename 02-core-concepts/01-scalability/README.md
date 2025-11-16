@@ -1,76 +1,61 @@
-# Scalability
+# Horizontal vs Vertical Scaling
 
 ## Overview
+- **Definition:** Scaling changes system capacity for more load.
+- **Horizontal (Scale Out):** Add more machines/nodes.
+- **Vertical (Scale Up):** Add more CPU, RAM, disk to a machine.
+- **Prerequisite:** Know basics of distributed systems and cloud.
+- **Difficulty:** Beginner
 
-Scalability is the ability of a system to handle increased load by adding resources. It's about designing systems that can grow to meet demand without significant changes to the architecture.
+## Key Concepts
+| Concept       | Description                        |
+|--------------|------------------------------------|
+| Horizontal   | More nodes for more load           |
+| Vertical     | Bigger/stronger single machine     |
+| Diagonal     | Scale up, then scale out if needed |
 
-## Prerequisites
-
-Basic understanding of system architecture and performance concepts.
+## Visual Summary
+```
+Horizontal:  [Node] [Node] [Node] [+ more]
+Vertical:    [Node++ (more RAM/CPU)]
+```
 
 ## Learning Path
+| Step     | Link                                                                  |
+|----------|-----------------------------------------------------------------------|
+| Article  | https://www.cloudzero.com/blog/horizontal-vs-vertical-scaling/        |
 
-### Phase 1: Foundations
+## When to Use
+| Use For           | Reason                                                               |
+|-------------------|----------------------------------------------------------------------|
+| Horizontal        | Handle rapid growth, fault tolerance, distributed/users in regions   |
+| Vertical          | Cost-effective, simple system, can tune up existing server specs     |
+| Diagonal          | Start vertical, move to horizontal for big systems                   |
 
-**Resources to consume in order:**
+## Trade-offs
+| Pros (Horizontal)    | Cons (Horizontal)       |
+|----------------------|------------------------|
+| Resilient, scalable  | More complex, costlier |
+| No single point fail | Needs load balancer    |
+| Pros (Vertical)      | Cons (Vertical)        |
+|----------------------|------------------------|
+| Simple, cheap start  | Failure=fatal, limits  |
+| One box to manage    | Scaling hits a ceiling |
 
-1. **Scalability Basics** — [Article]
-   - Duration: 20 minutes
-   - Focus: Understanding what scalability means
-   - Next step: Move to resource 2
+## Examples
+- Google/AWS: Auto-scale with more servers
+- Add RAM/CPU to a DB server for fast upgrade
 
-2. **Vertical vs Horizontal Scaling** — [Article]
-   - Duration: 25 minutes
-   - Focus: Different approaches to scaling
-   - Next step: Move to Phase 2
+## Interview Tips
+- Q: How to handle 10x user spike? A: Start with vertical, then plan for horizontal
 
-### Phase 2: Core Concepts
+## Quick Reference
+- Horizontal: Add nodes. Vertical: Add resources.
 
-**Resources to consume in order:**
+## Revision Checklist
+- [ ] Know the difference + trade-offs
+- [ ] Draw both diagrams
+- [ ] Know when to use each
+- [ ] See article above
 
-1. **Scaling Strategies** — [Article]
-   - Duration: 30 minutes
-   - Focus: Different strategies for scaling systems
-   - Dependencies: Complete Phase 1
-
-2. **Load Balancing** — [Article]
-   - Duration: 25 minutes
-   - Focus: Distributing load across multiple servers
-
-3. **Database Scaling** — [Article]
-   - Duration: 30 minutes
-   - Focus: Scaling data storage and retrieval
-
-### Phase 3: Advanced Topics
-
-**Resources to consume in order:**
-
-1. **Microservices and Scalability** — [Article]
-   - Duration: 35 minutes
-   - Focus: How microservices enable scaling
-
-2. **Auto-scaling** — [Article]
-   - Duration: 25 minutes
-   - Focus: Automatic resource management
-
-## Additional Resources
-
-- Scalability Patterns — [URL/Link description]
-- High Scalability Case Studies — [URL/Link description]
-- Performance Optimization Guide — [URL/Link description]
-
-## Supplementary Videos
-
-- Introduction to Scalability — [Duration] — [Channel/Source]
-- Scaling Strategies — [Duration] — [Channel/Source]
-
-## Completion Checklist
-
-- [ ] Phase 1 completed
-- [ ] Phase 2 completed
-- [ ] Phase 3 completed
-- [ ] Supplementary materials reviewed
-
-## Notes
-
-Scalability is not just about adding more servers. It's about designing systems that can handle growth efficiently and cost-effectively. Consider both technical and business aspects when designing for scale.
+**Last Updated:** Nov 2025
