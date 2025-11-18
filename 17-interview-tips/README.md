@@ -7,15 +7,14 @@ A comprehensive guide to mastering system design interviews with structured appr
 ## Table of Contents
 
 1. [Six-Step Problem Solving Approach](#six-step-problem-solving-approach)
-2. [Answering Framework](#answering-framework)
-3. [Back of the Envelope Calculation](#back-of-the-envelope-calculation)
-4. [API Design](#api-design)
-5. [Choosing the Right Database](#choosing-the-right-database)
-6. [Covering Non-Functional Requirements](#covering-non-functional-requirements)
-7. [Scaling from 0 to 1 Million Users](#scaling-from-0-to-1-million-users)
-8. [Diagram Making Tips](#diagram-making-tips)
-9. [Miscellaneous Key Points](#miscellaneous-key-points)
-10. [Quick Reference Tables](#quick-reference-tables)
+2. [Back of the Envelope Calculation](#back-of-the-envelope-calculation)
+3. [API Design](#api-design)
+4. [Choosing the Right Database](#choosing-the-right-database)
+5. [Covering Non-Functional Requirements](#covering-non-functional-requirements)
+6. [Scaling from 0 to 1 Million Users](#scaling-from-0-to-1-million-users)
+7. [Diagram Making Tips](#diagram-making-tips)
+8. [Miscellaneous Key Points](#miscellaneous-key-points)
+9. [Quick Reference Tables](#quick-reference-tables)
 
 ---
 
