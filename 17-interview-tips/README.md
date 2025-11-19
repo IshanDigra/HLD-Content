@@ -344,6 +344,28 @@ Response:
 
 ## Covering Non-Functional Requirements
 
+The most important nonfunctional requirements for System Design can be remembered with the acronym: **SPARCS**[1].
+
+| NFR Component | Definition | Key Considerations |
+|---------------|------------|-------------------|
+| **S**calability | System's ability to handle growing workload by adding resources | Horizontal vs vertical scaling, load distribution, resource allocation |
+| **P**erformance | System's responsiveness and throughput under various conditions | Latency, throughput, response time, resource utilization |
+| **A**vailability | System's uptime and accessibility to users | Redundancy, failover mechanisms, disaster recovery |
+| **R**eliability | System's ability to function correctly over time | Fault tolerance, error handling, data integrity |
+| **C**onsistency | Agreement of data across distributed system components | Strong vs eventual consistency, conflict resolution |
+| **S**ecurity | Protection against unauthorized access and threats | Authentication, authorization, encryption, compliance |
+
+### SPARCS Implementation Strategies
+
+| NFR | Possible Solutions | Tools/Technologies | Trade-offs |
+|-----|-------------------|-------------------|------------|
+| **Scalability** | Horizontal scaling, sharding, load balancing, microservices | Kubernetes, AWS Auto Scaling, database partitioning | Increased complexity, higher operational costs[10] |
+| **Performance** | Caching, CDN, async processing, database optimization | Redis, Memcached, CloudFront, Kafka | Memory overhead, cache invalidation complexity |
+| **Availability** | Multi-region deployment, replication, redundancy | Multi-AZ deployment, database replicas, failover systems | Higher infrastructure costs, data synchronization overhead[16] |
+| **Reliability** | Circuit breakers, retry mechanisms, health checks | Hystrix, monitoring tools, automated testing | Additional latency from retry logic, increased code complexity[10] |
+| **Consistency** | Distributed transactions, consensus protocols, conflict resolution | Paxos, Raft, eventual consistency models | Performance impact, reduced availability (CAP theorem)[17] |
+| **Security** | Encryption, authentication, rate limiting, input validation | JWT, OAuth, TLS/SSL, WAF | Performance overhead, user experience friction[10] |
+
 ### Performance Optimization
 
 | Requirement | Solution Strategy | Implementation |
