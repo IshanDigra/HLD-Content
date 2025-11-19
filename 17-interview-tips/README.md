@@ -190,21 +190,33 @@ This structured approach ensures comprehensive coverage of system design problem
 - Use authentication headers for sensitive operations
 
 **Request/Response Structure:**
+
 ```
-POST /api/v1/orders
-Authorization: Bearer <JWT_TOKEN>
-Request Body:
-{
-  "productId": "123",
-  "quantity": 2,
-  "shippingAddress": { ... }
-}
-Response:
-{
-  "orderId": "456",
-  "status": "pending",
-  "createdAt": "2024-01-01T00:00:00Z"
-}
+// APIs corresponding to the first user requirement 
+
+POST/Ride/fareEstimate
+Input: { pickupLocation, dropLocation }
+Output: Status Code: 2XX, { partial<Ride> }
+
+
+// APIs corresponding to second User Requirement 
+
+PATCH/Ride/requestRide 
+    Input: { rideId } 
+    OutPut: 2XX(Async Operation), partial<Ride> 
+
+POST/Location/Update 
+    Input: { lat, long }
+    OutPut: 2XX
+
+
+// APIs corresponding to 3rd User Requirement 
+
+GET/Urls/{:shortUrl}
+    OutPut: 3XX, {longUrl}
+
+PATCH/Ride/Driver/UpdateStatus
+    Input: {rideId, status: 'Pickedup' | 'DroppedOff'}
 ```
 
 **Status Codes:**
