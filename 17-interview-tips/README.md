@@ -527,6 +527,7 @@ The most important nonfunctional requirements for System Design can be remembere
 | Stage 7 | Millions+ | Message queues, database sharding | Full decoupling |
 
 ### Stage 1-2: Single Server to Web/Data Tier Separation
+![Scaling Architecture Diagram](./Images/2.png "")
 
 **Initial Setup:**
 - Single server handles everything
@@ -546,6 +547,8 @@ The most important nonfunctional requirements for System Design can be remembere
 
 ### Stage 3: Horizontal Scaling with Load Balancer
 
+![Scaling Architecture Diagram](./Images/3.png "")
+
 **Load Balancer Introduction:**
 - Distributes traffic across multiple web servers
 - Public IP on load balancer, private IPs for servers
@@ -558,6 +561,7 @@ The most important nonfunctional requirements for System Design can be remembere
 - Better resource utilization
 
 ### Stage 4: Database Replication
+![Scaling Architecture Diagram](./Images/4.png "")
 
 **Master-Slave Architecture:**
 - Master: handles writes only
@@ -574,6 +578,7 @@ The most important nonfunctional requirements for System Design can be remembere
 - Master fails: promote slave to master, run data recovery scripts
 
 ### Stage 5: Caching and CDN
+![Scaling Architecture Diagram](./Images/5.png "")
 
 **Caching:**
 - Temporary storage for expensive/frequent queries
@@ -593,6 +598,7 @@ The most important nonfunctional requirements for System Design can be remembere
 - Cache-aside for flexible control
 
 ### Stage 6: Stateless Architecture and Data Centers
+![Scaling Architecture Diagram](./Images/6.png "")
 
 **Stateless Architecture:**
 - Move session data out of web servers
@@ -612,6 +618,7 @@ The most important nonfunctional requirements for System Design can be remembere
 - Handles regional failures gracefully
 
 ### Stage 7: Message Queues and Database Sharding
+![Scaling Architecture Diagram](./Images/7.png "")
 
 **Message Queues:**
 - Asynchronous communication
