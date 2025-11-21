@@ -527,7 +527,11 @@ The most important nonfunctional requirements for System Design can be remembere
 | Stage 7 | Millions+ | Message queues, database sharding | Full decoupling |
 
 ### Stage 1-2: Single Server to Web/Data Tier Separation
-![Scaling Architecture Diagram](./Images/2.png "")
+
+<p align="center">
+  <img src="../Images/2.png" alt="Stage 1-2 Architecture" width="700">
+</p>
+<p align="center"><em>Figure 1: Single Server to Web/Data Tier Separation</em></p>
 
 **Initial Setup:**
 - Single server handles everything
@@ -547,7 +551,10 @@ The most important nonfunctional requirements for System Design can be remembere
 
 ### Stage 3: Horizontal Scaling with Load Balancer
 
-![Scaling Architecture Diagram](./Images/3.png "")
+<p align="center">
+  <img src="../Images/3.png" alt="Stage 3 Architecture" width="700">
+</p>
+<p align="center"><em>Figure 2: Horizontal Scaling with Load Balancer</em></p>
 
 **Load Balancer Introduction:**
 - Distributes traffic across multiple web servers
@@ -561,7 +568,11 @@ The most important nonfunctional requirements for System Design can be remembere
 - Better resource utilization
 
 ### Stage 4: Database Replication
-![Scaling Architecture Diagram](./Images/4.png "")
+
+<p align="center">
+  <img src="../Images/4.png" alt="Stage 4 Architecture" width="700">
+</p>
+<p align="center"><em>Figure 3: Database Replication (Master-Slave)</em></p>
 
 **Master-Slave Architecture:**
 - Master: handles writes only
@@ -578,7 +589,11 @@ The most important nonfunctional requirements for System Design can be remembere
 - Master fails: promote slave to master, run data recovery scripts
 
 ### Stage 5: Caching and CDN
-![Scaling Architecture Diagram](./Images/5.png "")
+
+<p align="center">
+  <img src="../Images/5.png" alt="Stage 5 Architecture" width="700">
+</p>
+<p align="center"><em>Figure 4: Caching and CDN Integration</em></p>
 
 **Caching:**
 - Temporary storage for expensive/frequent queries
@@ -598,7 +613,11 @@ The most important nonfunctional requirements for System Design can be remembere
 - Cache-aside for flexible control
 
 ### Stage 6: Stateless Architecture and Data Centers
-![Scaling Architecture Diagram](./Images/6.png "")
+
+<p align="center">
+  <img src="../Images/6.png" alt="Stage 6 Architecture" width="700">
+</p>
+<p align="center"><em>Figure 5: Stateless Architecture with Multi-Data Center</em></p>
 
 **Stateless Architecture:**
 - Move session data out of web servers
@@ -618,7 +637,11 @@ The most important nonfunctional requirements for System Design can be remembere
 - Handles regional failures gracefully
 
 ### Stage 7: Message Queues and Database Sharding
-![Scaling Architecture Diagram](./Images/7.png "")
+
+<p align="center">
+  <img src="../Images/7.png" alt="Stage 7 Architecture" width="700">
+</p>
+<p align="center"><em>Figure 6: Message Queues and Database Sharding</em></p>
 
 **Message Queues:**
 - Asynchronous communication
