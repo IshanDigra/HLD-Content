@@ -83,6 +83,10 @@ This structured approach ensures comprehensive coverage of system design problem
 - You can tell the interviewer you want to skip back-of-the-envelope estimation for now
 - Return to it later if time permits or if needed for design decisions
 
+**High Level Design:**
+- For the initial High level design just keep a Single client Server and Database system and map APIs. 
+- For the high level design we jsut need to look our APIs and map those to the above model. 
+
 ---
 
 ## Back of the Envelope Calculation
