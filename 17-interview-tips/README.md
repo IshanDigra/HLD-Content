@@ -69,6 +69,7 @@ This structured approach ensures comprehensive coverage of system design problem
 
 **Functional Requirements:**
 - Define core functionalities (same as in LLD)
+- These are monstly of the type "User should be able to ...." 
 - Identify critical vs. nice-to-have features
 - Determine user interactions and workflows
 
