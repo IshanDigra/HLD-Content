@@ -688,7 +688,8 @@ The most important nonfunctional requirements for System Design can be remembere
 
 ### High-Level Design Diagram Best Practices
 
-**Structure:**
+**Structure:** 
+- In the actual interview for functional & NFR try to keep as less text as possible because we will be speaking out loud about it. For the problem solving part we are adding huge text in actual interview we are supposed to save time on that. 
 - Keep it simple and clean
 - Use boxes for components, arrows for data flow
 - Show directional flow (request/response)
