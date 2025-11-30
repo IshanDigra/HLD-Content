@@ -128,7 +128,7 @@ The system enables users to order food from nearby restaurants and have it deliv
 
 ## 7. Architecture Diagram
 
-![Food Delivery System](../../Images/Food Delivery System.excalidraw.svg)
+![Food Delivery System](../../Images/FoodDeliverySystem.excalidraw.svg)
 
 ---
 
