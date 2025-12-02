@@ -254,7 +254,7 @@ The Feed Service finally returns the assembled feed items to the client. Because
 
 ### 6.1 Architecture Diagram
 
-![Facebook News Feed Architecture](../Images/FacebookNewsFeed.excalidraw.jpg)
+![Facebook News Feed Architecture](../Images/FacebookNewsFeed.excalidraw.svg)
 
 ### 6.2 Component Breakdown
 
