@@ -846,6 +846,10 @@ The most important nonfunctional requirements for System Design can be remembere
 - Apple Push Notification Service (APNS)
 - Web Push API for browsers
 
+---
+For the below diagram please replace No -> Yes & Yes -> No
+![Leetcode Architecture](../Images/realTimeCommunication.excalidraw.svg)
+
 ### Background Jobs
 
 **Cron Jobs:**
