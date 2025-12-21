@@ -10,7 +10,7 @@ Design a request-level rate limiter for a social media platform's API. The syste
 
 ### Architecture Overview
 
-![Whatsapp Architecture](../../Images/DistributedRateLimiting.excalidraw.svg)
+![Rate Limiter Architecture](../../Images/DistributedRateLimiting.excalidraw.svg)
 
 ### Component Breakdown
 
