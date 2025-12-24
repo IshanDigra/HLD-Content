@@ -794,7 +794,7 @@ The most important nonfunctional requirements for System Design can be remembere
 - Multipart upload for large files
 - Streaming for video content
 - Chunked transfer encoding
-
+---
 ### Content Delivery
 
 **Static vs Dynamic Content:**
@@ -810,7 +810,7 @@ The most important nonfunctional requirements for System Design can be remembere
 - Adaptive bitrate streaming
 - CDN for edge caching
 - Chunked delivery (HLS, DASH)
-
+---
 ### Pagination Strategies
 
 **Types:**
@@ -826,7 +826,7 @@ The most important nonfunctional requirements for System Design can be remembere
 - Prevents skipped/duplicate items
 - Stable across data changes
 - Essential for real-time feeds
-
+---
 ### Real-Time Communication
 
 **SSE (Server-Sent Events):**
@@ -849,7 +849,7 @@ The most important nonfunctional requirements for System Design can be remembere
 ---
 For the below diagram please replace No -> Yes & Yes -> No
 ![Leetcode Architecture](../Images/realTimeCommunication.excalidraw.svg)
-
+---
 ### Background Jobs
 
 **Cron Jobs:**
@@ -862,7 +862,7 @@ For the below diagram please replace No -> Yes & Yes -> No
 - Pull model: workers poll queue
 - Push model: queue notifies workers
 - Scale workers based on queue depth
-
+---
 ### Feed Generation Strategies
 
 **Pre-Computed Feeds (Write-Heavy):**
@@ -881,7 +881,53 @@ For the below diagram please replace No -> Yes & Yes -> No
 - Pre-compute for active users
 - On-demand for inactive users
 - Balance write and read costs
+---
+### Geo-Hashing vs Geo-Indexing
+#### One-Line Summary
+- **Geohashing**: Convert 2D coordinates → 1D string. Fast writes, approximate location.
+- **Geo-Indexing**: Use trees to store exact 2D geometry. Slower writes, perfect precision.
 
+#### Quick Comparison
+| | Geohashing | Geo-Indexing |
+|---|---|---|
+| **Speed** | O(1) lookup | O(log N) |
+| **Updates** | Very fast | Slower (re-balance) |
+| **Precision** | Approximate | Exact |
+| **Sharding** | Easy | Hard |
+| **Data Structure** | String/Integer | Tree (R-Tree, Quadtree) |
+| **Tech** | Redis, DynamoDB | PostgreSQL, PostGIS |
+
+#### Use Geohashing If:
+- High write velocity (moving objects)
+- Simple radius queries
+- Need easy sharding
+- **Example**: Uber drivers, live locations
+
+#### Use Geo-Indexing If:
+- Static data (buildings, zones)
+- Complex polygon queries
+- Need 100% accuracy
+- **Example**: Property boundaries, danger zones
+
+#### The Boundary Problem
+Two points 1 meter apart can have different geohashes. **Solution**: Query center cell + 8 neighbors (9 cells total).
+
+#### Decision Tree
+```
+Moving data constantly?
+├─ YES → Geohashing (Redis)
+└─ NO → Need complex shapes?
+   ├─ YES → Geo-Indexing (PostGIS)
+   └─ NO → Either works, prefer Geo-Indexing
+```
+
+#### Real-World Examples
+- **Uber drivers** → Geohashing (Redis)
+- **Google Maps buildings** → Geo-Indexing (PostGIS)
+- **Find restaurants in 5km** → Geohashing (Redis)
+- **Find houses in irregular zone** → Geo-Indexing (PostGIS)
+
+---
 ### NoSQL Consistency Patterns
 
 **Eventual Consistency Challenge:**
@@ -889,7 +935,7 @@ For the below diagram please replace No -> Yes & Yes -> No
 - Solution: Write-through cache (Redis)
 - Key pattern: `user1_user2` (check if `user2_user1` exists)
 - Ensures immediate consistency for critical operations
-
+---
 ### Data Synchronization
 
 **CDC (Change Data Capture):**
@@ -903,7 +949,7 @@ For the below diagram please replace No -> Yes & Yes -> No
 - Elasticsearch for reads (fast queries)
 - Sync via CDC + Kafka
 - Add cache layer for hot data
-
+---
 ### Dead Letter Queue
 
 **Purpose:**
@@ -916,7 +962,7 @@ For the below diagram please replace No -> Yes & Yes -> No
 - Failed payment processing
 - Invalid message format
 - Service temporarily unavailable
-
+---
 ### Standard Problem Patterns
 
 **Group Similar Problems:**
@@ -931,7 +977,7 @@ For the below diagram please replace No -> Yes & Yes -> No
 - Feed generation and ranking
 - Search and discovery
 - Notification systems
-
+---
 ### Learning Techniques
 
 **Restaurant Analogy:**
@@ -945,7 +991,7 @@ For the below diagram please replace No -> Yes & Yes -> No
 - Relate technical concepts to real-world scenarios
 - Easier to remember and explain
 - Helps with intuitive design decisions
-
+---
 ### Interview Communication
 
 **Collaborative Approach:**
