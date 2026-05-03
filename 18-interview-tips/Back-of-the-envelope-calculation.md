@@ -8,13 +8,13 @@
 
 | Section | Focus                                      |
 |--------:|--------------------------------------------|
-| 1       | What interviewers actually test            |
-| 2       | Golden rules for fast estimations          |
-| 3       | Storage, size, and time fundamentals       |
-| 4       | Traffic and bandwidth cheat codes          |
-| 5       | Four-step estimation framework             |
-| 6       | Modern latency and availability numbers    |
-| 7       | End-to-end Twitter/X clone walkthrough     |
+| 1       | [What interviewers actually test](#1-the-interviewers-true-goal) |
+| 2       | [Golden rules for fast estimations](#2-the-golden-rules-of-estimation) |
+| 3       | [Storage, size, and time fundamentals](#3-core-fundamentals-to-memorize) |
+| 4       | [Traffic and bandwidth cheat codes](#4-the-magic-cheat-codes) |
+| 5       | [Four-step estimation framework](#5-the-four-pillars-of-estimation) |
+| 6       | [Modern latency and availability numbers](#6-modern-system-design-trends-20252026) |
+| 7       | [End-to-end Twitter/X clone walkthrough](#7-example-walkthrough-twitterx-clone) |
 
 Use this as a **visual, skimmable cheat sheet** rather than a long-form article.
 
