@@ -332,3 +332,7 @@ Story you can tell:
 "Given these numbers, I would shard tweets by user ID, store media in object storage,
 put a large Redis or Memcached layer in front of the primary DB, and rely heavily on a CDN for fan-out reads."
 ```
+
+Key metrics 
+
+- redis can handle 100k write qps 
