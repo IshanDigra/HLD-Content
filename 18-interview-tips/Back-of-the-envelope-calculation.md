@@ -336,3 +336,6 @@ put a large Redis or Memcached layer in front of the primary DB, and rely heavil
 Key metrics 
 
 - redis can handle 100k write qps 
+- max file upload allowed by api gateway is 10 mb 
+- Foe bandwidth calculation note that 1MBytes per sec is not same as 1mbps(bits)
+for conversion 1 bytes => 8 bits so a factor of 8 comes into picture. for ease of calculation could take 10 also. 
