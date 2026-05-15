@@ -75,7 +75,37 @@
 
 ---
 
-## 7. Quick Summary Table
+## 7. Deep-Dive Evaluation Criteria: Finding the Breaking Point
+In a system design interview, selecting the right database comes down to finding the breaking point of your default choice (usually PostgreSQL). Here is how to evaluate the databases across five critical dimensions:
+
+### 7.1. QPS (Queries Per Second) & Node Capabilities
+* **PostgreSQL:** A well-tuned, vertically scaled node (e.g., 64 cores, 256GB RAM) on SSDs comfortably handles **10,000 to 20,000 QPS** for a mixed workload. For heavily cached, read-only queries utilizing connection poolers (like PgBouncer), a single node can push **50,000+ QPS**. *Breaking Point:* If write QPS consistently exceeds 15k, vertical scaling becomes prohibitively expensive.
+* **Cassandra:** Built for extreme throughput. A single commodity node can handle **10,000 to 30,000 write requests per second**. Because of its leaderless architecture and consistent hashing, scaling is purely linear. Need 100,000 write QPS? Add more nodes to the ring.
+* **DynamoDB:** Handled automatically via AWS auto-sharding. A single physical partition (shard) under the hood supports a hard limit of **1,000 Write Capacity Units (WCUs) and 3,000 Read Capacity Units (RCUs) per second**.
+
+### 7.2. Read vs. Write Heavy Workloads
+* **PostgreSQL (Read-Heavy / Balanced):** Excellent for read-heavy workloads where reads can be scaled horizontally via read replicas. However, because it uses a B-Tree index, high-volume random writes cause page fragmentation and disk I/O bottlenecks.
+* **Cassandra (Write-Heavy):** The absolute king of write-heavy workloads (time-series, chat messages, logging). It utilizes an LSM-tree where writes are appended in memory (Memtable) and sequentially flushed to disk (SSTable), avoiding random disk seeks entirely.
+* **DynamoDB (Mixed / Unpredictable):** Handles both exceptionally well but bills you per capacity unit. It handles massive throughput flawlessly, but extreme write volumes can become a massive financial cost.
+
+### 7.3. Capacity Estimation (Data Size)
+* **PostgreSQL:** The operational sweet spot is under **3–5 Terabytes**. While it can technically hold much more, tasks like vacuuming, index rebuilding, and taking backups become incredibly slow and risky at larger scales.
+* **Cassandra:** Designed for **Petabyte-scale** storage. It handles massive, infinitely growing datasets effortlessly (e.g., Discord storing trillions of messages by appending a time-based "bucket" to partition keys).
+* **DynamoDB:** Infinite storage capacity, fully managed. However, individual items have a strict size limit of **400KB**. If you need to store large blobs, you must store the blob in S3 and save the URL reference in DynamoDB.
+
+### 7.4. Transactional & Speed Requirements
+* **PostgreSQL (Strict Consistency):** Provides strict ACID guarantees. For financial transactions, inventory counts, or billing, Postgres is mandatory. It ensures data is never left in a partially updated state via two-phase locking and Write-Ahead Logs. Latency is typically in the low milliseconds.
+* **DynamoDB (Speed & Flexibility):** Delivers predictable, single-digit millisecond latencies. Enabling DAX (DynamoDB Accelerator) drops read latency to **sub-millisecond** levels. Defaults to Eventual Consistency for high availability, but can be configured for Strong Consistency and fully supports ACID transactions.
+* **Cassandra (Availability):** Does *not* offer ACID transactions. It is highly available and eventually consistent, resolving conflicts via "last write wins" timestamps. Fast, but sacrifices strict data correctness under network partitions.
+
+### 7.5. Relationship Between the Data
+* **PostgreSQL (Complex Relationships):** If entities have many-to-many relationships and exact query patterns are unknown upfront, choose Postgres. Its relational model (Foreign Keys, JOINs, secondary indexes) allows ultimate query flexibility.
+* **DynamoDB (Hierarchical / Key-Value):** Schema-less and flexible, but cannot perform JOINs. Data modeling is entirely query-driven. Querying by attributes other than the primary key requires duplicating data into Global Secondary Indexes (GSIs), incurring extra storage and write costs.
+* **Cassandra (Flat / Time-Series):** No JOINs, no referential integrity, and heavy denormalization is required. The schema must be designed entirely based on application access patterns upfront.
+
+---
+
+## 8. Quick Summary Table
 | Constraint | Winner | Why? |
 | :--- | :--- | :--- |
 | **System Design Default** | PostgreSQL | Handles 95% of use cases gracefully; standard for data integrity. |
