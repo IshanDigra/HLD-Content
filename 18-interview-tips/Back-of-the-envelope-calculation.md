@@ -339,3 +339,4 @@ Key metrics
 - max file upload allowed by api gateway is 10 mb 
 - Foe bandwidth calculation note that 1MBytes per sec is not same as 1mbps(bits)
 for conversion 1 bytes => 8 bits so a factor of 8 comes into picture. for ease of calculation could take 10 also. 
+- Per host we can cater around 1-2M users. 
