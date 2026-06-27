@@ -285,7 +285,7 @@ sequenceDiagram
 
 ## 1. The 1-Minute Pitch
 * **What it is:** A system that allows multiple users to simultaneously edit the same document (text, whiteboard, code) with automatic conflict resolution and real-time synchronization.
-* **Mental Model:** Think of it as Git's merge system, but instead of manual conflict resolution happening once per hour, conflicts are automatically resolved hundreds of times per second without user intervention.
+* **Mental Model:** Think of it as Git's merge system, but instead of manual conflict resolution happening once per hour, conflicts are automatically resolved hundreds of times per second without user input.
 * **System Placement:** Sits between clients and a central server (or peer-to-peer), managing concurrent edits, maintaining consistency, and broadcasting changes to all active users.
 * **When to think of it:**
   * High concurrency: Multiple users editing simultaneously in real-time
@@ -295,22 +295,32 @@ sequenceDiagram
 
 ---
 
-## 2. Core Fundamentals Cheat Sheet
+## 2. Core Fundamentals Cheat Sheet & Real-World Numbers
+
+### Quick Reference Table
+
+| Metric | OT | CRDT | Diff Sync |
+|--------|----|----|-----------|
+| **Bandwidth per edit** | ~10-50 bytes (pos + op type + text) | ~100-300 bytes (siteID + counter + char + metadata) | ~1-10 KB (full diff of changed region) |
+| **Memory per 100KB doc** | ~100 KB (doc + op log) | ~500 KB+ (tombstones add 3-5x overhead) | ~100 KB (doc + 2 shadows) |
+| **Latency to see own edit** | <10ms (optimistic + ack in 50-100ms) | <10ms (optimistic, converge in 100-500ms) | <50ms (local apply) + 100-200ms (converge) |
+| **Convergence time (worst case)** | ~1s (assuming 5-10 pending ops transform cleanly) | ~500ms-5s (depends on sync rate and batch size) | ~1-2s (depends on diff interval, typically 100-500ms) |
+| **Scalability limit** | 50-100 concurrent editors (transforms grow O(n²)) | 500+ concurrent (full replicas work peer-to-peer) | 50-100 concurrent (server patch overhead) |
+| **Offline support** | Poor (requires server ordering) | Excellent (full replica offline, syncs on reconnect) | Poor (shadow assumes online) |
+
+### Core Concepts
+
 * **Data Model:** Character-based (text), operation-based (OT), or ID-based (CRDT) depending on algorithm
-* **Consistency:** Eventual consistency for all approaches; Strong consistency only possible with server-authoritative models
-* **Durability:** Server-side persistence with periodic snapshots; client-side optimistic updates
+* **Consistency:** Eventual consistency for all approaches; Strong consistency not achievable without sacrificing latency
+* **Durability:** Server-side persistence with periodic snapshots; client-side optimistic updates stored in localStorage
 * **Scaling Model:**
   - OT: Star topology (central server required)
   - CRDT: Any topology (peer-to-peer, masterless, offline-first)
   - Diff Sync: Star or direct peer connections
 * **Failure Model:**
-  - Network partition: CRDTs handle best (guaranteed convergence)
+  - Network partition: CRDTs handle best (guaranteed convergence); OT/Diff Sync must resync
   - Temporary disconnect: All handle with local buffering and replay
   - Divergence: OT/CRDT guarantee mathematical convergence; Diff Sync is lossy but practical
-* **Latency Profile:**
-  - Optimistic updates: Instant local rendering (0ms perceived)
-  - Network round-trip: 50-200ms for confirmation
-  - Convergence time: Seconds for CRDT/OT, periodic for Diff Sync
 
 ---
 
@@ -451,22 +461,24 @@ graph LR
 * CRDT: Every node is equal; no leader election needed.
 * Diff Sync: Server replication straightforward; just sync shadow states.
 
-### 3.4 Operational Knobs
+### 3.4 Operational Knobs & Tuning (Interview Knowledge)
 
 **OT Configuration:**
-* Transformation function complexity: Grows O(n b2) with operation types.
-* Operation buffering: Balance between latency and batching efficiency.
-* Server acknowledgment timeout: Retry logic for lost operations.
+* **Transformation function complexity:** O(n²) with operation types. Google Docs uses ~6-8 ops (insert, delete, format bold/italic/link, etc.). Adding custom ops (tables, embeds) = exponential cost. **Decision:** Limit ops to core set or use hierarchical transforms to avoid explosion.
+* **Operation acknowledgment timeout:** Default 3-5s. Too short = retransmit overhead; too long = perceived lag. **Best practice:** Retransmit after 2s, give up after 10s (user perceives as failure and shows warning).
+* **Batch size:** Send ops immediately (low latency, high bandwidth) or wait 50ms (high latency, low bandwidth). **SDE-2 choice:** 50-100ms batching; most users don't perceive it, but it reduces server load by 50%.
 
 **CRDT Configuration:**
-* Garbage collection: Periodic tombstone cleanup (must ensure all replicas synced).
-* ID generation strategy: Lamport timestamps, vector clocks, or fractional indexing.
-* Compaction: Merge adjacent characters with consecutive IDs to reduce metadata.
+* **Garbage collection strategy:** Tombstones accumulate; at 5M tombstones, memory grows to 2-3GB. **Practical limit:** Rebuild from snapshot when tombstones > 10% of data. Requires coordination—all peers must be synced before GC epoch.
+* **ID generation:** Fractional indexing (e.g., 1.5, 1.75) causes precision issues at high edit frequency. **Better:** (siteID, Lamport counter) tuples. **Trade-off:** +20 bytes per operation vs simpler arithmetic.
+* **Compaction:** Merge adjacent identical-prefix IDs to save memory. **Cost:** O(n) full scan; run offline weekly or on-demand.
 
 **Diff Sync Configuration:**
-* Sync interval: 100ms-1s (trade-off between freshness and bandwidth).
-* Diff algorithm: Myers, Hunt-McIlroy, or patience diff.
-* Patch strategy: Three-way merge vs two-way merge.
+* **Sync interval:** 100ms (responsive) vs 1s (efficient). **Decision driver:** Is concurrency high? Use 100ms. Mostly single-user? Use 500ms. Real-time draw tool? 50ms.
+* **Three-way vs two-way merge:** Three-way uses base document to detect conflicts better. Two-way is simpler. **Diff Sync typically uses two-way** because shadows already act as implicit "base" documents.
+* **Diff algorithm:** Myers algorithm O(n+m) is default; Patience diff for large files with unchanged blocks. **Practical:** Never noticeable for docs <1MB. Don't over-optimize here.
+
+**Interview signal:** "We'd monitor (operations/sec) at p50, p99. If p99 ops/sec exceeds threshold (say, 1000), we shift batch interval from 50ms → 100ms to reduce server CPU. We track this per document and alert if approaching limits."
 
 ---
 
@@ -536,16 +548,46 @@ graph LR
     style E fill:#ff6b6b
 ```
 
-* **Lost intent:** Algorithms converge to *a* state but not necessarily the *correct* state.
+* **Lost intent (Convergence ≠ Correctness):** 
+  - Example: Doc is `["Item A", "Item B", "Item C"]`.
+    - User A: Deletes "Item B" → `["Item A", "Item C"]`
+    - User B: Simultaneously edits "Item B" to "Item B (UPDATED)" → `["Item A", "Item B (UPDATED)", "Item C"]`
+  - **CRDT result:** Tombstone for B + edited B clash; depending on ID ordering, you get either:
+    - `["Item A", "Item B (UPDATED)", "Item C"]` (B's edit applied despite deletion intent), or
+    - `["Item A", "Item C"]` (B's edit lost).
+  - **User intent violated** in both cases. System converged but picked the "wrong" state.
+  - **Why it matters:** Rich collaborative apps (spreadsheets, design tools) must handle this with **per-field versioning** or **operational semantics** (conflict-free merge functions at app level, not just data-structure level). E.g., Figma handles "delete element while someone edits it" by applying the edit to tombstoned data, then discarding on render.
+
 * **Causality violations:** Order of operations matters; naive handling can lose edits.
+  - Example: User A adds comment to paragraph, User B deletes paragraph. If comment deletion arrives before paragraph deletion, comment may reappear.
+  - **Solution:** Use vector clocks or version vectors to enforce causal ordering, or use app-level semantics (comment deletion implies paragraph context is gone).
+
 * **Undo/Redo complexity:** Need operation history; naive undo conflicts with others edits.
+  - Example: User A types "hello", User B types " world" concurrently. User A hits undo. Should undo remove only "hello" or both edits?
+  - **Standard behavior:** Undo removes only User A's edits; B's " world" remains (but position may shift after transform).
+  - **Implementation:** Maintain operation history + causality info; transform undo operations like normal edits.
 
 **Operational:**
-* **Memory bloat (CRDT):** Deleted characters become tombstones; heavily edited docs grow.
-* **Transform explosion (OT):** O(n b2) transformation functions scale poorly.
+* **Memory bloat (CRDT):** Deleted characters become tombstones; heavily edited docs grow 3-5x.
+* **Transform explosion (OT):** O(n²) transformation functions scale poorly beyond ~20 operation types.
 * **Race conditions:** Clients must transform pending ops against incoming ops to avoid divergence.
-* **Cursor desync:** Cursor positions must be transformed along with content.
+* **Cursor desync:** Cursor positions must be transformed along with content; easy to miss if not careful.
 * **Performance degradation:** Large docs stress diff algorithms (Diff Sync) or metadata (CRDT).
+
+### Failure Scenarios (Interviewer's Favorite Questions)
+
+| Scenario | OT | CRDT | Diff Sync |
+|----------|----|----|-----------|
+| **Network partition (5s)** | Clients diverge; pending ops buffered locally; must resync from server on reconnect by replaying buffered ops | Clients buffer ops, converge when sync resumes (guaranteed by CRDT math; order-independent merge) | Clients buffer patches, replay on reconnect until shadows match |
+| **Server crash (OT only)** | Lost pending ops unless replicated; clients must reconnect and resync from snapshot | N/A (no server) | Server replayed from operation log or full snapshots; clients resync shadows |
+| **Concurrent deletes** | Transform handles it: if User A deletes char 5 and B deletes char 5, second delete becomes no-op after transform | Each client marks locally with tombstone; synced tombstones merge safely (idempotent) | Diff may show both deletes; patch reconciles by comparing current vs shadow |
+| **Duplicate operation received** | Idempotent keys prevent replay; server drops duplicates via opID dedup | CRDT merge is idempotent by design; safe to apply twice without side effects | Diff recomputes; duplicate patch has no effect (commutative diffs) |
+| **Out-of-order operations** | Server enforces order via opID; clients transform to handle; convergence guaranteed | Merge-based; order irrelevant (convergence guaranteed by CRDT design) | Shadow sync corrects ordering automatically; fully commutative |
+
+**Recovery pattern you should know:**
+- **OT:** Client tracks `lastAckedOpID`. On reconnect, client replays unacked ops from buffer. Server transforms against newer ops. If `lastAckedOpID` not in server log (server crashed), full resync from snapshot.
+- **CRDT:** No ack needed; full state is authoritative. Sync by exchanging state vectors (version vectors). Merge until both peers have same state (idempotent, so retries are safe).
+- **Diff Sync:** Replay full diffs until `doc_client == doc_server` (convergent by design). Track sync version numbers to detect replays.
 
 ### Simplified SDE-2 Decision Matrix
 
@@ -556,19 +598,19 @@ flowchart TD
     Start([Need collaborative editing?])
     Start --> Offline{Offline / P2P required?}
 
-    Offline -->|Yes| UseCRDT[Choose CRDT\n(Yjs / Automerge)]
+    Offline -->|Yes| UseCRDT[Choose CRDT<br/>Yjs / Automerge]
     Offline -->|No| Server{Central server available?}
 
     Server -->|No| UseCRDT
     Server -->|Yes| Data{Mainly text?}
 
     Data -->|Yes| Conflicts{Heavy concurrent editing?}
-    Data -->|No| Format{Unusual format (trees/graphs)?}
+    Data -->|No| Format{Unusual format<br/>trees/graphs?}
 
-    Conflicts -->|Yes| UseOT[Choose OT\n(Google Docs style)]
-    Conflicts -->|No| Simple[Simple server-authoritative\n(base version + retries)]
+    Conflicts -->|Yes| UseOT[Choose OT<br/>Google Docs style]
+    Conflicts -->|No| Simple[Simple server-authoritative<br/>base version + retries]
 
-    Format -->|Yes| UseDiff[Choose Diff Sync\n(diff + patch)]
+    Format -->|Yes| UseDiff[Choose Diff Sync<br/>diff + patch]
     Format -->|No| Simple
 
     style UseCRDT fill:#95e1d3
@@ -585,19 +627,59 @@ flowchart TD
 
 ---
 
-## 6. The "Drop-In" Interview Script
+## 6. Complete Interview Script (Ready to Use)
 
-> **Proposing it:** "For real-time collaboration in documents, we can introduce an Operational Transformation layer because we need to handle dozens of concurrent writers with sub-second latency while keeping all clients converged."
+### Proposing OT:
+> "For real-time collaboration with heavy concurrent text editing, I'd propose Operational Transformation because:
+> 1. We have a central authoritative server (necessary for OT).
+> 2. Operations are bandwidth-efficient (~10 bytes each) vs full document diffs (~1-10 KB).
+> 3. Google Docs has proven OT scales to thousands of concurrent editors without divergence.
+> 4. Our users need <100ms latency to see their edits, which optimistic updates + transformation handles perfectly.
+> 
+> The downside is implementation complexity—transformation rules grow O(n²) with operation types, and silent divergence is possible if we bug the transform logic. We mitigate this with comprehensive testing and operational monitoring (divergence detection via checksums)."
 
-> **Justifying a feature:** "To handle concurrent edits, OT provides transformation functions that automatically adjust operation positions when earlier edits shift the document. The server acts as the single source of truth for operation ordering."
+### Handling "Why not CRDT?"
+> "CRDTs would let us go peer-to-peer and offline-first, but we'd pay 3-5x memory overhead for tombstones on every character. For a browser-based always-online doc editor, that's unjustified. We'd only reconsider CRDT if:
+> - We needed offline-first (mobile/flight mode editing).
+> - We had no reliable central server (mesh network scenario).
+> - Document size was guaranteed small (<100KB) and edits infrequent.
+> 
+> Otherwise OT is the right call because it's bandwidth-efficient and proven at scale."
 
-> **Owning the trade-off:** "We accept the implementation complexity of O(n b2) transformation functions because our product prioritizes user experience—instant updates and zero visible merge conflicts justify the engineering effort."
+### Scaling discussion:
+> "We shard documents across servers by document ID using consistent hashing. Each document has one authoritative server handling operation ordering—this is critical for OT to work correctly. We replicate the operation log to 2 read-replicas for HA. If primary fails:
+> 1. Clients' pending ops are buffered locally.
+> 2. We promote a replica to primary.
+> 3. On next heartbeat, clients reconnect and replay pending ops.
+> 4. Clients don't notice beyond a brief pause.
+> 
+> For very large-scale deployments (100k+ concurrent editors), we'd consider message broker (Kafka) for operation log instead of replicating DB writes."
 
-> **Handling follow-up on alternatives:** "CRDTs would let us go peer-to-peer and offline, but for a browser-based doc editor with constant server connection, we'd pay the memory overhead without gaining offline capability or eliminating our central server dependency."
+### Failure handling:
+> "If a client disconnects mid-edit:
+> 1. Client buffers pending operations in localStorage.
+> 2. On reconnect, client sends [lastAckedOpID, pending_ops] to server.
+> 3. Server verifies lastAckedOpID is in its operation log (if not, full resync from snapshot).
+> 4. Server applies pending ops with fresh transforms against all newer server ops.
+> 5. Client rebases local state by transforming its pending ops against server's ops.
+> 6. If network partition caused divergence between two clients, they auto-correct on reconnect because server has the canonical order.
+> 
+> For truly massive partitions, we detect via operation age—if a client's pending ops aren't acked after 10s, we warn the user that they may be in a partition."
 
-> **Scaling discussion:** "For scaling, we shard documents across servers by document ID. Each document has a single authoritative server handling operation ordering. We replicate the operation log for failover and use read replicas for analytics."
+### Cursor sharing:
+> "We broadcast cursor positions separately on a WebSocket channel (not part of the operation log). Cursor positions are transformed using the same OT rules as text:
+> - If User A's text insertion pushes User B's cursor, we shift the cursor position transparently.
+> - If User A deletes over User B's cursor position, we collapse the cursor to the deletion boundary.
+> 
+> This feels 'alive' to users—cursors move smoothly and disappear when users disconnect. We throttle cursor broadcasts to 10Hz to reduce bandwidth."
 
-> **Failure handling:** "If a client disconnects mid-edit, we buffer their operations locally. On reconnect, they re-send pending ops with their last-known-version. The server transforms them against the canonical log and broadcasts the result to all clients."
+### Addressing data correctness concerns:
+> "We're aware that convergence doesn't guarantee correctness. For example, if User A deletes a paragraph while User B edits it, we might end up with stale edited text after deletion. We handle this through:
+> 1. App-level semantics: Delete operation includes all children/references, so orphaned edits are discarded on render.
+> 2. Checksums: Every 10s, clients and server verify document hash. Mismatch triggers full resync.
+> 3. Testing: Fuzzy testing of concurrent operations across 50+ scenarios (delete + edit, format + delete, etc.).
+> 
+> This is why collaborative editing is hard—the algorithm converges, but the user-facing semantics must be designed carefully at the app level."
 
 ---
 
@@ -609,6 +691,6 @@ flowchart TD
 
 * **Key strength:** Enables seamless real-time multiplayer experiences with automatic merging—users see changes instantly without manual conflict resolution.
 
-* **Key weakness:** Convergence does not guarantee correctness; the final document may mathematically include all edits but still misrepresent user intent.
+* **Key weakness:** Convergence does not guarantee correctness; the final document may mathematically include all edits but still misrepresent user intent due to concurrent operation ordering. App-level semantics must handle this.
 
 ---
