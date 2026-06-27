@@ -1,4 +1,4 @@
-# High Level Design: Slack
+# High Level Design: Google Docs
 
 
-![URL Shortener Architecture](../../../../19-interview-questions/Images/Slack.excalidraw.svg)
+![URL Shortener Architecture](../../../../19-interview-questions/Images/GoogleDocs.excalidraw.svg)
