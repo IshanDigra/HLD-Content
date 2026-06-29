@@ -79,7 +79,7 @@ Design a ride-sharing service like Uber where users can book rides and drivers c
 ## 5. High Level Architecture
 
 ### 5.1 Architecture Diagram
-![Uber Architecture](../../Images/Uber.excalidraw.svg)
+![Uber Architecture](../../../../19-interview-questions/Images/Uber.excalidraw.svg)
 
 ### 5.2 Component Breakdown
 - **Load Balancer**: Distributes traffic (Round Robin/Least Connections).

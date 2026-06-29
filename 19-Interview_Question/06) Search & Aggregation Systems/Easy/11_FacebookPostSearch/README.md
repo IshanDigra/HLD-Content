@@ -256,7 +256,7 @@ Like:
 
 ### System Diagram
 
-![Facebook Post Search Architecture](../../Images/FbPostSearch.excalidraw.svg)
+![Facebook Post Search Architecture](../../../../19-interview-questions/Images/FbPostSearch.excalidraw.svg)
 
 ### Component Breakdown
 

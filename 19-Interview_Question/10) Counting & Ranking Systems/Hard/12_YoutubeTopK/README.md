@@ -510,7 +510,7 @@ GET /views/top-k?window=hour&k=10
 ## 7. High-Level Design
 
 ### 7.1 Architecture Diagram
-![Top K Videos](../../Images/TopKVideos.excalidraw.svg)
+![Top K Videos](../../../../19-interview-questions/Images/TopKVideos.excalidraw.svg)
 
 ---
 
