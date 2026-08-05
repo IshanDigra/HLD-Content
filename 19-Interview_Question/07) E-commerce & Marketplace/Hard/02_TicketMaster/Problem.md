@@ -1,5 +1,14 @@
 # TicketMaster System Design
 
+> **System Overview Diagram**
+```mermaid
+graph LR
+    A[Client] -->|Requests| B(API Gateway)
+    B --> C[Core Services]
+    C --> D[(Database)]
+```
+
+
 | Step | Focus Area | Time Allocation | Key Activities |
 |------|-----------|----------------|----------------|
 | 1 | Requirements | 5-10 min | Clarify functional and non-functional requirements, identify core features |
@@ -23,7 +32,7 @@
 - [References & Original Diagrams](#references--original-diagrams)
 
 ---
-## 1. Requirements (5-10 min)
+## 1. 📋 Requirements (5-10 min)
 
 ### Functional Requirements
 - [ ] Users can search and view upcoming events/concerts.
@@ -59,7 +68,7 @@
 
 ---
 
-## 2. Core Entities (3-5 min)
+## 2. 🗄️ Core Entities (3-5 min)
 
 - **Event**: `eventId`, `name`, `date`, `venueId`
 - **Seat**: `seatId`, `eventId`, `status` (Available, Reserved, Sold), `price`
@@ -68,7 +77,7 @@
 
 ---
 
-## 3. API Design (~5 min)
+## 3. 🌐 API Design (~5 min)
 
 ### `POST /api/v1/reservations`
 - **Purpose**: Temporarily lock a seat while the user enters payment info.
@@ -80,7 +89,7 @@
 
 ---
 
-## 4. Data Flow (5-10 min)
+## 4. 🔄 Data Flow (5-10 min)
 
 1. User views Event. Client polls for available seats.
 2. User selects seats and clicks "Reserve".
@@ -91,17 +100,19 @@
 
 ---
 
-## 5. High-Level Design (15-20 min)
+## 5. 🏗️ High-Level Design (15-20 min)
 
 ### High-Level Architecture
 ```mermaid
 graph TD
-    Client --> CDN
-    CDN --> WaitingRoom(Queue / Waiting Room)
-    WaitingRoom --> API
-    API --> Booking(Booking Service)
-    Booking --> DB[(Postgres SQL)]
+    A[Load Balancer] --> B[Service Cluster]
+    B --> C[(Primary DB)]
+    C -.->|Async Replication| D[(Read Replica)]
+    B --> E[(Redis Cache)]
 ```
+
+
+
 
 - **API Gateway**: Contains Rate Limiting and Virtual Waiting Room logic.
 - **Search Service**: ElasticSearch for querying events quickly.
@@ -112,26 +123,11 @@ graph TD
 
 ---
 
-## 6. Deep Dives (15-20 min)
+## 6. 🔬 Deep Dives (15-20 min)
 
-### Deep Dive / Data Flow
-```mermaid
-sequenceDiagram
-    participant C as Client
-    participant B as Booking
-    participant DB as SQL DB
-    C->>B: Reserve Seat A1
-    B->>DB: SELECT FOR UPDATE
-    DB-->>B: Locked
-    B-->>C: Reserved for 5 mins
-```
 
-### Generic Problem Component
-```mermaid
-graph LR
-    A[Millions of Users] --> B[Virtual Queue]
-    B --> C[Throttled Traffic to DB]
-```
+
+
 
 ### High Concurrency Seat Locking
 - **Challenge**: 100,000 users click "Buy" on the same 100 seats the second the clock strikes 9:00 AM.
@@ -145,7 +141,7 @@ graph LR
 
 ---
 
-## 7. Address Key Issues (5 min)
+## 7. 🚧 Address Key Issues (5 min)
 
 ### Fault Tolerance & Resiliency
 - Ticket Generation should be idempotent. If the user clicks "Pay" twice due to lag, they should only be charged once.

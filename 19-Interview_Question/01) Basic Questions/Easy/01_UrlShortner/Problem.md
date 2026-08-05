@@ -1,5 +1,14 @@
 # URL Shortener System Design
 
+> **System Overview Diagram**
+```mermaid
+graph LR
+    A[Client] -->|Requests| B(API Gateway)
+    B --> C[Core Services]
+    C --> D[(Database)]
+```
+
+
 | Step | Focus Area | Time Allocation | Key Activities |
 |------|-----------|----------------|----------------|
 | 1 | Requirements | 5-10 min | Clarify functional and non-functional requirements, identify core features |
@@ -23,7 +32,7 @@
 - [References & Original Diagrams](#references--original-diagrams)
 
 ---
-## 1. Requirements (5-10 min)
+## 1. 📋 Requirements (5-10 min)
 
 ### Functional Requirements
 - [ ] Users should be able to input a long URL and get a short URL back.
@@ -66,14 +75,14 @@
 
 ---
 
-## 2. Core Entities (3-5 min)
+## 2. 🗄️ Core Entities (3-5 min)
 
 - **URLMapping**: `shortUrlId` (PK), `longUrl`, `userId` (optional), `createdAt`, `expiresAt`
 - **User** (optional): `userId`, `email`
 
 ---
 
-## 3. API Design (~5 min)
+## 3. 🌐 API Design (~5 min)
 
 ### `POST /api/v1/data/shorten`
 - **Purpose**: Create a short URL from a long URL.
@@ -86,26 +95,26 @@
 
 ---
 
-## 4. Data Flow (5-10 min)
+## 4. 🔄 Data Flow (5-10 min)
 
 1. **Write Flow**: Client requests short URL -> Gateway -> Shortener Service generates unique ID -> Stores mapping in DB -> Returns short URL.
 2. **Read Flow**: Client clicks short URL -> Gateway -> Redirect Service checks Cache -> If miss, queries DB -> Updates analytics async -> Returns 301/302 Redirect.
 
 ---
 
-## 5. High-Level Design (15-20 min)
+## 5. 🏗️ High-Level Design (15-20 min)
 
 ### High-Level Architecture
 ```mermaid
 graph TD
-    Client --> API_Gateway
-    API_Gateway --> URL_Service
-    API_Gateway --> Redirect_Service
-    URL_Service --> DB[(Key-Value Store)]
-    Redirect_Service --> Cache[(Redis Cache)]
-    Redirect_Service --> DB
-    KGS[Key Generation Service] --> URL_Service
+    A[Load Balancer] --> B[Service Cluster]
+    B --> C[(Primary DB)]
+    C -.->|Async Replication| D[(Read Replica)]
+    B --> E[(Redis Cache)]
 ```
+
+
+
 
 - **API Gateway**: Rate limiting, routing.
 - **Shortener Service**: Coordinates generating the unique short alias and saving it.
@@ -116,39 +125,11 @@ graph TD
 
 ---
 
-## 6. Deep Dives (15-20 min)
+## 6. 🔬 Deep Dives (15-20 min)
 
-### Deep Dive / Data Flow
-```mermaid
-sequenceDiagram
-    participant C as Client
-    participant GW as API Gateway
-    participant RS as Redirect Service
-    participant CA as Cache
-    participant DB as Database
 
-    C->>GW: GET /shortURL
-    GW->>RS: Forward Request
-    RS->>CA: Check Cache
-    alt Cache Miss
-        CA-->>RS: Not Found
-        RS->>DB: Query DB
-        DB-->>RS: Long URL
-        RS->>CA: Update Cache
-    else Cache Hit
-        CA-->>RS: Long URL
-    end
-    RS-->>GW: HTTP 301 Redirect to Long URL
-    GW-->>C: Redirect
-```
 
-### Generic Problem Component
-```mermaid
-graph LR
-    A[Collision Risk] --> B{Key Generation}
-    B -->|Pre-compute| C[Key Generation Service]
-    B -->|Base62 Encode| D[Shorter URLs]
-```
+
 
 ### Unique Short ID Generation
 - **Challenge**: Generating a unique 7-character string (Base62 encoding of an integer gives ~3.5 trillion URLs) concurrently across distributed servers without collisions.
@@ -163,7 +144,7 @@ graph LR
 
 ---
 
-## 7. Address Key Issues (5 min)
+## 7. 🚧 Address Key Issues (5 min)
 
 ### Fault Tolerance & Resiliency
 - Multi-AZ deployment. The KGS needs replicas. If KGS goes down, servers can rely on their local cached batch of keys for a short time.

@@ -1,5 +1,14 @@
 # Key Value Store System Design
 
+> **System Overview Diagram**
+```mermaid
+graph LR
+    A[Client] -->|Requests| B(API Gateway)
+    B --> C[Core Services]
+    C --> D[(Database)]
+```
+
+
 | Step | Focus Area | Time Allocation | Key Activities |
 |------|-----------|----------------|----------------|
 | 1 | Requirements | 5-10 min | Clarify functional and non-functional requirements, identify core features |
@@ -23,7 +32,7 @@
 - [References & Original Diagrams](#references--original-diagrams)
 
 ---
-## 1. Requirements (5-10 min)
+## 1. 📋 Requirements (5-10 min)
 
 ### Functional Requirements
 - [ ] Clients can execute `put(key, value)` to store data.
@@ -58,13 +67,13 @@
 
 ---
 
-## 2. Core Entities (3-5 min)
+## 2. 🗄️ Core Entities (3-5 min)
 
 - **Record**: `key` (string/bytes), `value` (bytes), `timestamp`/`version`
 
 ---
 
-## 3. API Design (~5 min)
+## 3. 🌐 API Design (~5 min)
 
 ### `put(key, value)`
 - Stores the value against the key.
@@ -74,7 +83,7 @@
 
 ---
 
-## 4. Data Flow (5-10 min)
+## 4. 🔄 Data Flow (5-10 min)
 
 1. Client sends a request to any Node (Coordinator) in the cluster.
 2. Coordinator hashes the key to determine which replica nodes hold the data.
@@ -83,16 +92,19 @@
 
 ---
 
-## 5. High-Level Design (15-20 min)
+## 5. 🏗️ High-Level Design (15-20 min)
 
 ### High-Level Architecture
 ```mermaid
 graph TD
-    Client --> CoordinatorNode
-    CoordinatorNode --> Replica1
-    CoordinatorNode --> Replica2
-    CoordinatorNode --> Replica3
+    A[Load Balancer] --> B[Service Cluster]
+    B --> C[(Primary DB)]
+    C -.->|Async Replication| D[(Read Replica)]
+    B --> E[(Redis Cache)]
 ```
+
+
+
 
 - **Consistent Hashing Ring**: Distributes data evenly across the cluster.
 - **Data Replication**: Data is replicated to `N` consecutive nodes on the hash ring.
@@ -101,32 +113,11 @@ graph TD
 
 ---
 
-## 6. Deep Dives (15-20 min)
+## 6. 🔬 Deep Dives (15-20 min)
 
-### Deep Dive / Data Flow
-```mermaid
-sequenceDiagram
-    participant C as Client
-    participant CO as Coordinator
-    participant R1 as Replica 1
-    participant R2 as Replica 2
 
-    C->>CO: PUT key
-    CO->>CO: Hash key
-    CO->>R1: Write Replica
-    CO->>R2: Write Replica
-    R1-->>CO: Ack
-    CO-->>C: Quorum Met
-    R2-->>CO: Ack (Async)
-```
 
-### Generic Problem Component
-```mermaid
-graph LR
-    A[Data Partitioning] --> B{Consistent Hashing}
-    B --> C[Virtual Nodes]
-    C --> D[Even Load Distribution]
-```
+
 
 ### CAP Theorem & Quorum Consensus
 - **Challenge**: Network partitions happen. We must choose between Consistency and Availability.
@@ -140,7 +131,7 @@ graph LR
 
 ---
 
-## 7. Address Key Issues (5 min)
+## 7. 🚧 Address Key Issues (5 min)
 
 ### Fault Tolerance (Hinted Handoff & Merkle Trees)
 - **Temporary Failure**: If Node A is down, Node B accepts the write on its behalf (Hinted Handoff). When A returns, B pushes the data to A.

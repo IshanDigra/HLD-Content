@@ -1,5 +1,14 @@
 # WhatsApp System Design
 
+> **System Overview Diagram**
+```mermaid
+graph LR
+    A[Client] -->|Requests| B(API Gateway)
+    B --> C[Core Services]
+    C --> D[(Database)]
+```
+
+
 | Step | Focus Area | Time Allocation | Key Activities |
 |------|-----------|----------------|----------------|
 | 1 | Requirements | 5-10 min | Clarify functional and non-functional requirements, identify core features |
@@ -23,7 +32,7 @@
 - [References & Original Diagrams](#references--original-diagrams)
 
 ---
-## 1. Requirements (5-10 min)
+## 1. 📋 Requirements (5-10 min)
 
 ### Functional Requirements
 - [ ] 1-on-1 chat and group chats.
@@ -61,7 +70,7 @@
 
 ---
 
-## 2. Core Entities (3-5 min)
+## 2. 🗄️ Core Entities (3-5 min)
 
 - **User**: `phoneNumber`, `publicKey`, `profilePic`
 - **Message**: `messageId`, `sender`, `receiver`, `encryptedPayload`, `status`
@@ -69,7 +78,7 @@
 
 ---
 
-## 3. API Design (~5 min)
+## 3. 🌐 API Design (~5 min)
 
 *(Primarily WebSockets/TCP. REST used only for media/profile uploads)*
 
@@ -94,7 +103,7 @@
 
 ---
 
-## 4. Data Flow (5-10 min)
+## 4. 🔄 Data Flow (5-10 min)
 
 1. Alice sends a message to Bob. The message is encrypted on Alice's device using Bob's public key.
 2. The encrypted payload is sent via WebSocket to the Chat Server.
@@ -104,18 +113,19 @@
 
 ---
 
-## 5. High-Level Design (15-20 min)
+## 5. 🏗️ High-Level Design (15-20 min)
 
 ### High-Level Architecture
 ```mermaid
 graph TD
-    Client --> LB
-    LB --> Gateway(Connection Gateway)
-    Gateway --> Session[(Redis Session DB)]
-    Gateway --> Router(Message Router)
-    Router --> Gateway
-    Router --> TransientDB[(Cassandra)]
+    A[Load Balancer] --> B[Service Cluster]
+    B --> C[(Primary DB)]
+    C -.->|Async Replication| D[(Read Replica)]
+    B --> E[(Redis Cache)]
 ```
+
+
+
 
 - **Connection Gateway**: Millions of long-lived TCP/WebSocket connections. (Erlang is famously used here for managing millions of concurrent connections per server).
 - **Session/User State Service**: Redis cluster tracking which IP/Gateway a user is connected to.
@@ -126,32 +136,11 @@ graph TD
 
 ---
 
-## 6. Deep Dives (15-20 min)
+## 6. 🔬 Deep Dives (15-20 min)
 
-### Deep Dive / Data Flow
-```mermaid
-sequenceDiagram
-    participant A as Alice
-    participant G as Gateway
-    participant S as Session DB
-    participant B as Bob
 
-    A->>G: Encrypted Msg
-    G->>S: Is Bob Online?
-    S-->>G: Yes, IP Address
-    G->>G: Route to Bob's Gateway
-    G->>B: Deliver Msg
-    B-->>G: Delivered Ack
-    G-->>A: Double Tick
-```
 
-### Generic Problem Component
-```mermaid
-graph LR
-    A[Privacy] --> B{End to End Encryption}
-    B --> C[Public/Private Key Pairs]
-    B --> D[Server sees only cipher text]
-```
+
 
 ### End-to-End Encryption (E2EE) & Media
 - **Challenge**: The server cannot read the messages. How do we share large media files securely?
@@ -168,7 +157,7 @@ graph LR
 
 ---
 
-## 7. Address Key Issues (5 min)
+## 7. 🚧 Address Key Issues (5 min)
 
 ### Fault Tolerance & Resiliency
 - Connection Gateways are stateless (mostly). If a gateway dies, devices automatically reconnect to another via DNS/LB.

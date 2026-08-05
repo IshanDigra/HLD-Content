@@ -1,5 +1,14 @@
 # Spotify System Design
 
+> **System Overview Diagram**
+```mermaid
+graph LR
+    A[Artist] -->|Uploads| B(Spotify Platform)
+    C[Users] -->|Streams| B
+    B --> D[(Song Catalog 100M+)]
+```
+
+
 | Step | Focus Area | Time Allocation | Key Activities |
 |------|-----------|----------------|----------------|
 | 1 | Requirements | 5-10 min | Clarify functional and non-functional requirements, identify core features |
@@ -23,7 +32,7 @@
 - [References & Original Diagrams](#references--original-diagrams)
 
 ---
-## 1. Requirements (5-10 min)
+## 1. 📋 Requirements (5-10 min)
 
 ### Functional Requirements
 - [ ] Artists should be able to upload songs.
@@ -82,7 +91,7 @@
 
 ---
 
-## 2. Core Entities (3-5 min)
+## 2. 🗄️ Core Entities (3-5 min)
 
 - **User**: `userId`, `name`, `email`, `profilePicUrl`
 - **Artist**: `artistId`, `name`, `bio`
@@ -96,7 +105,7 @@
 
 ---
 
-## 3. API Design (~5 min)
+## 3. 🌐 API Design (~5 min)
 
 ### `POST /api/v1/songs/upload`
 - **Purpose**: Let artists upload raw audio files.
@@ -114,7 +123,7 @@
 
 ---
 
-## 4. Data Flow (5-10 min)
+## 4. 🔄 Data Flow (5-10 min)
 
 ### Upload Flow
 1. Artist client hits the API Gateway.
@@ -130,17 +139,19 @@
 
 ---
 
-## 5. High-Level Design (15-20 min)
+## 5. 🏗️ High-Level Design (15-20 min)
 
 ### High-Level Architecture
 ```mermaid
 graph TD
-    Client -->|Play| LB(Load Balancer)
-    LB --> Gateway(API Gateway)
-    Gateway --> Meta(Metadata Service)
-    Client -->|Stream| CDN(CDN Edge Node)
-    Meta --> DB[(Postgres/NoSQL)]
+    A[Client] --> B[CDN Edge Node]
+    B -->|Cache Miss| C[Origin Storage S3]
+    D[Transcoder Service] -->|Multiple Bitrates| C
+    E[Metadata DB] -->|Queries| F[Redis Cache]
 ```
+
+
+
 
 - **Client**: Mobile/Web App.
 - **API Gateway**: Entry point for routing, authentication, and rate limiting.
@@ -155,51 +166,34 @@ graph TD
 
 ---
 
-## 6. Deep Dives (15-20 min)
+## 6. 🔬 Deep Dives (15-20 min)
 
-### Deep Dive / Data Flow
-```mermaid
-sequenceDiagram
-    participant C as Client
-    participant A as API
-    participant CD as CDN
-    C->>A: Get Song URL
-    A-->>C: Return CDN Link
-    C->>CD: Request Chunks
-    CD-->>C: Stream Data
-```
+### 🎧 Content Delivery Network (CDN) & Streaming
+> **Challenge**: Serving 150 GB/s egress globally from centralized servers will cause massive network congestion, high latency, and buffering.
+>
+> **Solution**: Use Edge CDNs (e.g., Cloudflare, AWS CloudFront, or a custom CDN like Netflix's Open Connect).
+> - The `Read Service` only returns pre-signed URLs to the client.
+> - The client pulls bytes directly from the geographically closest CDN node.
+> - **Trade-offs**: High financial cost for CDN bandwidth, but it offers unparalleled latency reduction and offloads 99% of the traffic from our origin servers.
 
-### Generic Problem Component
-```mermaid
-graph LR
-    A[Global Latency] --> B{CDN}
-    B --> C[Edge Server US]
-    B --> D[Edge Server EU]
-```
+### 🎛️ Adaptive Bitrate Streaming (ABR)
+> **Challenge**: Users have wildly varying network conditions (e.g., 5G in cities vs. 3G in rural areas).
+>
+> **Solution**: When an artist uploads a song, the asynchronous transcoding pipeline converts the raw audio into multiple formats and bitrates (e.g., 64kbps, 128kbps, 320kbps Ogg/AAC). The client dynamically monitors its buffer health and network speed, automatically switching to a lower bitrate chunk if the network degrades, ensuring zero rebuffering.
 
-### CDN Integration & Streaming
-- **Challenge**: 150 GB/s egress is massive. Centralized servers will choke.
-- **Solution**: Use edge CDNs (Cloudflare, AWS CloudFront). The `Read Service` only returns URLs; the client pulls bytes from the CDN.
-- **Trade-offs**: High CDN costs, but unparalleled latency reduction and server offloading.
+## 7. 🚧 Address Key Issues (5 min)
 
-### Adaptive Bitrate Streaming
-- **Challenge**: Users have varying network conditions.
-- **Solution**: The transcode service prepares multiple versions of the song. The client dynamically switches between 64kbps, 128kbps, and 320kbps based on real-time bandwidth metrics.
+### 🛡️ Fault Tolerance & Resiliency
+- **Event-Driven Architecture (EDA)**: Use Kafka to decouple the heavy transcoding jobs from the upload API. If a transcoder worker crashes, the message remains in the queue and is picked up by another worker.
+- **S3 Cross-Region Replication**: Replicate the raw and transcoded audio files across multiple Availability Zones to prevent data loss.
 
----
+### 🔐 Security
+- Use **Pre-signed URLs** for direct S3 uploads. This keeps heavy file upload traffic completely away from our application servers, protecting them from exhaustion attacks.
+- Enforce strict DRM (Digital Rights Management) using Widevine or FairPlay if copyright protection is required.
 
-## 7. Address Key Issues (5 min)
-
-### Fault Tolerance & Resiliency
-- S3 replicates data across Availability Zones.
-- Use an Event-Driven Architecture (EDA) with Kafka for transcoding. If a transcoder fails, the message remains in the queue for another worker.
-
-### Security
-- Use Pre-signed URLs for direct S3 uploads to keep heavy traffic away from the application servers.
-- TLS/SSL for all data in transit.
-
-### Monitoring & Observability
-- Track stream buffer rates, startup latency, and CDN cache hit rates using Prometheus and Grafana.
+### 💡 Key Concepts on the Go
+- **Consistent Hashing**: Used in the caching layer to ensure that when we scale up our Redis cluster, we don't invalidate the entire cache, keeping cache hits high.
+- **Long-Tail Content**: Spotify has millions of songs that are rarely played. We only cache the "hot" 10-20% of songs in the expensive CDN edge nodes, while fetching the "cold" tail from cheaper Origin S3 storage when requested.
 
 ## References & Original Diagrams
 - [Spotify.excalidraw](./Spotify.excalidraw)

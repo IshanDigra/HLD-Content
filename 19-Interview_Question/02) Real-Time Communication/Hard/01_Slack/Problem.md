@@ -1,5 +1,14 @@
 # Slack System Design
 
+> **System Overview Diagram**
+```mermaid
+graph LR
+    A[Client] -->|Requests| B(API Gateway)
+    B --> C[Core Services]
+    C --> D[(Database)]
+```
+
+
 | Step | Focus Area | Time Allocation | Key Activities |
 |------|-----------|----------------|----------------|
 | 1 | Requirements | 5-10 min | Clarify functional and non-functional requirements, identify core features |
@@ -23,7 +32,7 @@
 - [References & Original Diagrams](#references--original-diagrams)
 
 ---
-## 1. Requirements (5-10 min)
+## 1. 📋 Requirements (5-10 min)
 
 ### Functional Requirements
 - [ ] Users can send 1-on-1 direct messages.
@@ -63,7 +72,7 @@
 
 ---
 
-## 2. Core Entities (3-5 min)
+## 2. 🗄️ Core Entities (3-5 min)
 
 - **User**: `userId`, `name`, `status`
 - **Channel**: `channelId`, `name`, `type` (Direct vs Group)
@@ -72,7 +81,7 @@
 
 ---
 
-## 3. API Design (~5 min)
+## 3. 🌐 API Design (~5 min)
 
 ### `POST /api/v1/messages` (Often handled over WebSocket instead)
 - **Purpose**: Send a message to a channel.
@@ -85,7 +94,7 @@
 
 ---
 
-## 4. Data Flow (5-10 min)
+## 4. 🔄 Data Flow (5-10 min)
 
 1. **Send Flow**: User types a message. Client sends payload via WebSocket.
 2. Connection Handler receives it, forwards to `Chat Service`.
@@ -96,19 +105,19 @@
 
 ---
 
-## 5. High-Level Design (15-20 min)
+## 5. 🏗️ High-Level Design (15-20 min)
 
 ### High-Level Architecture
 ```mermaid
 graph TD
-    Client --> LB
-    LB --> WebSocket_Manager
-    WebSocket_Manager --> Session_Service
-    WebSocket_Manager --> Chat_Service
-    Chat_Service --> DB[(Cassandra/ScyllaDB)]
-    Chat_Service --> PubSub[[Redis Pub/Sub or Kafka]]
-    PubSub --> WebSocket_Manager
+    A[Load Balancer] --> B[Service Cluster]
+    B --> C[(Primary DB)]
+    C -.->|Async Replication| D[(Read Replica)]
+    B --> E[(Redis Cache)]
 ```
+
+
+
 
 - **Connection Managers**: Fleet of servers holding stateful WebSocket connections with clients.
 - **Session Service**: Keeps track of which user is connected to which Connection Manager.
@@ -122,32 +131,11 @@ graph TD
 
 ---
 
-## 6. Deep Dives (15-20 min)
+## 6. 🔬 Deep Dives (15-20 min)
 
-### Deep Dive / Data Flow
-```mermaid
-sequenceDiagram
-    participant U1 as User 1
-    participant WM as WebSocket Manager
-    participant CS as Chat Service
-    participant PS as Pub/Sub
-    participant U2 as User 2 (Subscribed)
 
-    U1->>WM: Send Message via WS
-    WM->>CS: Process Message
-    CS->>DB: Store in DB
-    CS->>PS: Publish to Channel Topic
-    PS->>WM: Message Event
-    WM->>U2: Push via WS to active members
-```
 
-### Generic Problem Component
-```mermaid
-graph LR
-    A[High Concurrent Connections] --> B{C10k Problem}
-    B --> C[Erlang/Go Servers]
-    B --> D[Stateful Load Balancing]
-```
+
 
 ### Real-Time Delivery & Connection Management
 - **Challenge**: Managing millions of concurrent TCP connections and routing messages to the right one.
@@ -164,7 +152,7 @@ graph LR
 
 ---
 
-## 7. Address Key Issues (5 min)
+## 7. 🚧 Address Key Issues (5 min)
 
 ### Fault Tolerance & Resiliency
 - If a Connection Manager dies, clients instantly detect the dropped WebSocket and reconnect to a new server via the Load Balancer. The client pulls missed messages via REST API.

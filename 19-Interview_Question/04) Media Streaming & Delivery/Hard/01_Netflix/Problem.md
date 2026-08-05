@@ -1,5 +1,14 @@
 # Netflix System Design
 
+> **System Overview Diagram**
+```mermaid
+graph LR
+    A[Client] -->|Requests| B(API Gateway)
+    B --> C[Core Services]
+    C --> D[(Database)]
+```
+
+
 | Step | Focus Area | Time Allocation | Key Activities |
 |------|-----------|----------------|----------------|
 | 1 | Requirements | 5-10 min | Clarify functional and non-functional requirements, identify core features |
@@ -23,7 +32,7 @@
 - [References & Original Diagrams](#references--original-diagrams)
 
 ---
-## 1. Requirements (5-10 min)
+## 1. 📋 Requirements (5-10 min)
 
 ### Functional Requirements
 - [ ] Users can browse and search for movies/TV shows.
@@ -61,7 +70,7 @@
 
 ---
 
-## 2. Core Entities (3-5 min)
+## 2. 🗄️ Core Entities (3-5 min)
 
 - **User**: `userId`, `subscriptionPlan`
 - **Video**: `videoId`, `title`, `metadata`
@@ -69,7 +78,7 @@
 
 ---
 
-## 3. API Design (~5 min)
+## 3. 🌐 API Design (~5 min)
 
 ### `GET /api/v1/browse`
 - **Response**: Returns personalized rows of content metadata.
@@ -79,22 +88,26 @@
 
 ---
 
-## 4. Data Flow (5-10 min)
+## 4. 🔄 Data Flow (5-10 min)
 
 1. **Browse Flow**: Client requests homepage -> API Gateway -> Recommendation Service -> Metadata DB/Cache -> returns JSON.
 2. **Streaming Flow**: Client clicks play -> Gateway -> Playback Service validates subscription -> Returns CDN links. Client pulls raw video chunks directly from Edge CDN (Open Connect), bypassing backend servers entirely.
 
 ---
 
-## 5. High-Level Design (15-20 min)
+## 5. 🏗️ High-Level Design (15-20 min)
 
 ### High-Level Architecture
 ```mermaid
 graph TD
-    Client -->|Browse| AWS(AWS Control Plane)
-    Client -->|Stream| OCA(Open Connect CDN)
-    AWS --> DB[(User/Metadata DB)]
+    A[Load Balancer] --> B[Service Cluster]
+    B --> C[(Primary DB)]
+    C -.->|Async Replication| D[(Read Replica)]
+    B --> E[(Redis Cache)]
 ```
+
+
+
 
 - **Control Plane (AWS)**:
   - API Gateway (Zuul), User Service, Subscription Service, Recommendation Engine.
@@ -105,25 +118,11 @@ graph TD
 
 ---
 
-## 6. Deep Dives (15-20 min)
+## 6. 🔬 Deep Dives (15-20 min)
 
-### Deep Dive / Data Flow
-```mermaid
-sequenceDiagram
-    participant C as Client
-    participant AWS as Control Plane
-    participant OCA as CDN
-    C->>AWS: Request Play
-    AWS-->>C: Return OCA URLs
-    C->>OCA: Stream Video
-```
 
-### Generic Problem Component
-```mermaid
-graph LR
-    A[ISP Network] --> B[Netflix Edge Node]
-    B --> C[User Home Router]
-```
+
+
 
 ### Adaptive Bitrate Streaming (ABR)
 - **Challenge**: Users have wildly different internet speeds.
@@ -135,7 +134,7 @@ graph LR
 
 ---
 
-## 7. Address Key Issues (5 min)
+## 7. 🚧 Address Key Issues (5 min)
 
 ### Fault Tolerance & Resiliency
 - **Chaos Engineering**: Netflix uses Chaos Monkey to randomly kill servers in production to ensure the architecture automatically fails over without user impact.

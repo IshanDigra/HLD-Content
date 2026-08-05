@@ -1,5 +1,14 @@
 # Web Crawler System Design
 
+> **System Overview Diagram**
+```mermaid
+graph LR
+    A[Client] -->|Requests| B(API Gateway)
+    B --> C[Core Services]
+    C --> D[(Database)]
+```
+
+
 | Step | Focus Area | Time Allocation | Key Activities |
 |------|-----------|----------------|----------------|
 | 1 | Requirements | 5-10 min | Clarify functional and non-functional requirements, identify core features |
@@ -23,7 +32,7 @@
 - [References & Original Diagrams](#references--original-diagrams)
 
 ---
-## 1. Requirements (5-10 min)
+## 1. 📋 Requirements (5-10 min)
 
 ### Functional Requirements
 - [ ] System starts with a list of seed URLs.
@@ -59,7 +68,7 @@
 
 ---
 
-## 2. Core Entities (3-5 min)
+## 2. 🗄️ Core Entities (3-5 min)
 
 - **URL Frontier**: Queue of `urls` waiting to be crawled.
 - **Document**: `docId`, `url`, `contentHash`, `htmlData`
@@ -67,7 +76,7 @@
 
 ---
 
-## 3. API Design (~5 min)
+## 3. 🌐 API Design (~5 min)
 
 *(Web Crawlers don't usually expose public APIs; they are background distributed systems. However, an internal control API is useful)*
 ### `POST /api/v1/crawler/seed`
@@ -76,7 +85,7 @@
 
 ---
 
-## 4. Data Flow (5-10 min)
+## 4. 🔄 Data Flow (5-10 min)
 
 1. **URL Frontier** pops a URL and assigns it to a Worker.
 2. Worker resolves DNS and fetches the HTML using HTTP GET.
@@ -89,20 +98,19 @@
 
 ---
 
-## 5. High-Level Design (15-20 min)
+## 5. 🏗️ High-Level Design (15-20 min)
 
 ### High-Level Architecture
 ```mermaid
 graph TD
-    Frontier(URL Frontier Queue) --> Worker
-    Worker --> DNS(Custom DNS Cache)
-    Worker --> Internet
-    Worker --> Parser
-    Parser --> Dedup(Content Dedup)
-    Dedup --> S3[(HTML Blob Storage)]
-    Parser --> URLFilter(URL Dedup / Bloom Filter)
-    URLFilter --> Frontier
+    A[Load Balancer] --> B[Service Cluster]
+    B --> C[(Primary DB)]
+    C -.->|Async Replication| D[(Read Replica)]
+    B --> E[(Redis Cache)]
 ```
+
+
+
 
 - **URL Frontier**: A complex priority queue. Usually backed by Redis or custom disk-backed queues (e.g., RabbitMQ).
 - **DNS Resolver Cache**: Resolving DNS for every page is slow. A custom, highly cached DNS resolver is required.
@@ -113,34 +121,11 @@ graph TD
 
 ---
 
-## 6. Deep Dives (15-20 min)
+## 6. 🔬 Deep Dives (15-20 min)
 
-### Deep Dive / Data Flow
-```mermaid
-sequenceDiagram
-    participant W as Worker
-    participant P as Parser
-    participant B as Bloom Filter (Seen URLs)
-    participant F as URL Frontier
 
-    W->>P: HTML String
-    P->>P: Extract all <a href> links
-    loop Every link
-        P->>B: Check if visited
-        alt Not Visited
-            B-->>P: False
-            P->>F: Enqueue URL
-        end
-    end
-```
 
-### Generic Problem Component
-```mermaid
-graph LR
-    A[Massive Sets] --> B{Bloom Filter}
-    B --> C[Memory Efficient]
-    B --> D[False Positives possible, no False Negatives]
-```
+
 
 ### Politeness and URL Routing
 - **Challenge**: If the crawler fetches 1,000 links from `example.com` simultaneously, it will crash `example.com`.
@@ -156,7 +141,7 @@ graph LR
 
 ---
 
-## 7. Address Key Issues (5 min)
+## 7. 🚧 Address Key Issues (5 min)
 
 ### Fault Tolerance & Resiliency
 - Worker node crashes are common (OOM from bad HTML parsing). The URL is simply re-queued in the URL Frontier after a timeout.

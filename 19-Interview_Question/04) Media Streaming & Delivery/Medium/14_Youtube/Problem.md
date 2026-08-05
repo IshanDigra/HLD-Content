@@ -1,5 +1,14 @@
 # YouTube System Design
 
+> **System Overview Diagram**
+```mermaid
+graph LR
+    A[Client] -->|Requests| B(API Gateway)
+    B --> C[Core Services]
+    C --> D[(Database)]
+```
+
+
 | Step | Focus Area | Time Allocation | Key Activities |
 |------|-----------|----------------|----------------|
 | 1 | Requirements | 5-10 min | Clarify functional and non-functional requirements, identify core features |
@@ -23,7 +32,7 @@
 - [References & Original Diagrams](#references--original-diagrams)
 
 ---
-## 1. Requirements (5-10 min)
+## 1. 📋 Requirements (5-10 min)
 
 ### Functional Requirements
 - [ ] Users can upload videos.
@@ -61,14 +70,14 @@
 
 ---
 
-## 2. Core Entities (3-5 min)
+## 2. 🗄️ Core Entities (3-5 min)
 
 - **User**: `userId`, `channelName`
 - **Video**: `videoId`, `title`, `description`, `uploaderId`, `views`, `likes`
 
 ---
 
-## 3. API Design (~5 min)
+## 3. 🌐 API Design (~5 min)
 
 ### `POST /api/v1/videos`
 - **Request**: `multipart/form-data` with raw video file.
@@ -79,23 +88,26 @@
 
 ---
 
-## 4. Data Flow (5-10 min)
+## 4. 🔄 Data Flow (5-10 min)
 
 1. **Upload**: Client uploads to nearest CDN/Upload Server -> Video stored in S3 (Raw) -> Triggers async Transcoding jobs via Message Queue -> Transcoded videos saved to CDN/S3 -> Metadata updated in DB.
 2. **Streaming**: Client requests video -> API returns CDN links -> Client streams via Adaptive Bitrate Streaming.
 
 ---
 
-## 5. High-Level Design (15-20 min)
+## 5. 🏗️ High-Level Design (15-20 min)
 
 ### High-Level Architecture
 ```mermaid
 graph TD
-    Client -->|Upload| API
-    API --> Queue(Kafka)
-    Queue --> Trans(Transcoder)
-    Trans --> CDN
+    A[Load Balancer] --> B[Service Cluster]
+    B --> C[(Primary DB)]
+    C -.->|Async Replication| D[(Read Replica)]
+    B --> E[(Redis Cache)]
 ```
+
+
+
 
 - **Upload Service**: Handles resumable, chunked uploads.
 - **Transcoding/Processing Queue (Kafka)**: Distributes heavy video encoding tasks to a cluster of workers.
@@ -105,27 +117,11 @@ graph TD
 
 ---
 
-## 6. Deep Dives (15-20 min)
+## 6. 🔬 Deep Dives (15-20 min)
 
-### Deep Dive / Data Flow
-```mermaid
-sequenceDiagram
-    participant C as Client
-    participant A as API
-    participant CD as CDN
-    C->>A: Request Video
-    A-->>C: Return Manifest
-    C->>CD: Get Video Segments
-```
 
-### Generic Problem Component
-```mermaid
-graph LR
-    A[Raw Video] --> B[Transcoder]
-    B --> C[360p]
-    B --> D[720p]
-    B --> E[1080p]
-```
+
+
 
 ### Resumable Uploads & Transcoding
 - **Challenge**: Uploading a 10GB 4K video can fail midway. Encoding it takes massive CPU.
@@ -140,7 +136,7 @@ graph LR
 
 ---
 
-## 7. Address Key Issues (5 min)
+## 7. 🚧 Address Key Issues (5 min)
 
 ### Storage Optimization
 - Cold storage for rarely watched videos. Only cache trending videos in expensive Edge CDNs.

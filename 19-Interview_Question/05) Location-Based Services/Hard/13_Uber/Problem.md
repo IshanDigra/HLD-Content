@@ -1,5 +1,14 @@
 # Uber System Design
 
+> **System Overview Diagram**
+```mermaid
+graph LR
+    A[Rider] -->|Request| B(Dispatch Engine)
+    C[Drivers] -->|GPS Pings| B
+    B -->|Match| A
+```
+
+
 | Step | Focus Area | Time Allocation | Key Activities |
 |------|-----------|----------------|----------------|
 | 1 | Requirements | 5-10 min | Clarify functional and non-functional requirements, identify core features |
@@ -23,7 +32,7 @@
 - [References & Original Diagrams](#references--original-diagrams)
 
 ---
-## 1. Requirements (5-10 min)
+## 1. 📋 Requirements (5-10 min)
 
 ### Functional Requirements
 - [ ] Users input pickup and drop-off locations to get fare estimations.
@@ -64,7 +73,7 @@
 
 ---
 
-## 2. Core Entities (3-5 min)
+## 2. 🗄️ Core Entities (3-5 min)
 
 - **Rider**: `riderId`, `name`, `contactInfo`
 - **Driver**: `driverId`, `vehicleId`, `status` (Available, Busy, Offline), `currentLocation` (Lat/Long)
@@ -75,7 +84,7 @@
 
 ---
 
-## 3. API Design (~5 min)
+## 3. 🌐 API Design (~5 min)
 
 ### `GET /api/v1/fare-estimate`
 - **Purpose**: Get estimated fare before booking.
@@ -94,7 +103,7 @@
 
 ---
 
-## 4. Data Flow (5-10 min)
+## 4. 🔄 Data Flow (5-10 min)
 
 1. Driver app sends location updates to Gateway every few seconds.
 2. `Location Service` updates the Spatial Database/Cache (e.g., Redis Geospatial).
@@ -105,17 +114,20 @@
 
 ---
 
-## 5. High-Level Design (15-20 min)
+## 5. 🏗️ High-Level Design (15-20 min)
 
 ### High-Level Architecture
 ```mermaid
 graph TD
-    Driver -->|GPS| API
-    Rider -->|Request Ride| API
-    API --> Loc(Location Service)
-    API --> Match(Match Service)
-    Loc --> Redis[(Redis Geo)]
+    A[Location Gateway] --> B[[Kafka High Throughput]]
+    B --> C[Redis Geo Index]
+    B --> D[Cassandra Archive]
+    E[Match Service] -->|Queries GEORADIUS| C
+    E --> F[Pricing / Surge Engine]
 ```
+
+
+
 
 - **Clients**: Rider App, Driver App.
 - **API Gateway**: Load balancing, routing, auth.
@@ -129,46 +141,33 @@ graph TD
 
 ---
 
-## 6. Deep Dives (15-20 min)
+## 6. 🔬 Deep Dives (15-20 min)
 
-### Deep Dive / Data Flow
-```mermaid
-sequenceDiagram
-    participant R as Rider
-    participant M as Match Service
-    participant D as Driver
-    R->>M: Request Ride
-    M->>D: Push Notification
-    D-->>M: Accept
-    M-->>R: Driver Found
-```
+### 🌍 Geospatial Indexing & Tracking
+> **Challenge**: Storing and querying millions of latitude/longitude coordinates every 4 seconds to find "drivers within 3 miles" requires a specialized database, as standard B-Trees will fail.
+>
+> **Solution**:
+> - Divide the map into a grid of alphanumeric characters using **Geohashing** or **Quadtrees**.
+> - Use **Redis Geospatial** (which uses Geohashes internally under Sorted Sets) for ultra-fast, in-memory proximity searches (`GEORADIUS`).
+> - **Trade-off**: Redis is in-memory. If it crashes, current locations are lost. Therefore, we asynchronously flush driver locations via Kafka to a persistent store (Cassandra) for historical paths and analytics.
 
-### Generic Problem Component
-```mermaid
-graph LR
-    A[QuadTree / Geohash] --> B[Find drivers in grid]
-    B --> C[Calculate ETA]
-```
+### 🔀 Concurrency and Ride Matching
+> **Challenge**: Two riders in the same busy location requesting a ride at the same millisecond could be assigned the exact same driver.
+>
+> **Solution**: The Match Service must use distributed locks (e.g., Redis Redlock) or atomic database operations (e.g., `UPDATE Driver SET status = 'Busy' WHERE driverId = 123 AND status = 'Available'`) to ensure 1 Rider maps to exactly 1 Driver. If the update returns 0 affected rows, the driver was just taken, and the system tries the next best driver.
 
-### Location Tracking & Geospatial Indexing
-- **Challenge**: Storing and querying millions of lat/long coordinates every 3-5 seconds.
-- **Solution**: Geo-hashing (dividing the map into a grid of characters, e.g., Quadtree or Geohash). Redis provides built-in `GEOADD` and `GEORADIUS` commands which are incredibly fast for "drivers near me" queries.
-- **Trade-off**: Redis data might be lost on crash. Solution is to asynchronously flush driver locations to a persistent store (Cassandra or PostGIS) for analytics and historical paths.
+## 7. 🚧 Address Key Issues (5 min)
 
-### Concurrency and Ride Matching
-- **Challenge**: Two riders requesting a ride at the same time could be assigned the same driver.
-- **Solution**: The Match Service must use distributed locks (Redis Redlock) or atomic database operations (e.g., `UPDATE Driver SET status = 'Busy' WHERE driverId = 123 AND status = 'Available'`) to ensure 1 Rider maps to 1 Driver.
+### 🛡️ Fault Tolerance & Resiliency
+- Microservices must handle retry logic gracefully for intermittent network failures when talking to drivers in poor connectivity zones.
+- Use a **Circuit Breaker** pattern. If the third-party maps API (Google Maps) goes down, the system should fall back to a simple "haversine distance" (straight line) calculation to keep the app functioning.
 
----
+### 🔐 Security
+- Mask actual phone numbers. Use a third-party telephony service (Twilio) to route calls between drivers and riders without exposing personal details.
 
-## 7. Address Key Issues (5 min)
-
-### Fault Tolerance & Resiliency
-- WebSockets for notifications can drop. The App must fall back to long-polling or polling if the connection drops.
-- Microservices must handle retry logic gracefully for intermittent network failures.
-
-### Monitoring & Observability
-- Track matching time, driver acceptance rate, and location update latency.
+### 💡 Key Concepts on the Go
+- **Surge Pricing**: Calculated asynchronously by a Spark/Flink pipeline that analyzes the ratio of open requests to available drivers in a specific Geohash bucket over a tumbling window.
+- **Write-Heavy Workload**: The system receives orders of magnitude more GPS updates than ride requests, dictating the need for high-throughput ingestion like Kafka.
 
 ## References & Original Diagrams
 - [Uber.excalidraw](./Uber.excalidraw)

@@ -1,5 +1,14 @@
 # Notification Service System Design
 
+> **System Overview Diagram**
+```mermaid
+graph LR
+    A[Client] -->|Requests| B(API Gateway)
+    B --> C[Core Services]
+    C --> D[(Database)]
+```
+
+
 | Step | Focus Area | Time Allocation | Key Activities |
 |------|-----------|----------------|----------------|
 | 1 | Requirements | 5-10 min | Clarify functional and non-functional requirements, identify core features |
@@ -23,7 +32,7 @@
 - [References & Original Diagrams](#references--original-diagrams)
 
 ---
-## 1. Requirements (5-10 min)
+## 1. 📋 Requirements (5-10 min)
 
 ### Functional Requirements
 - [ ] Send notifications via multiple channels: SMS, Email, and Push Notifications.
@@ -60,14 +69,14 @@
 
 ---
 
-## 2. Core Entities (3-5 min)
+## 2. 🗄️ Core Entities (3-5 min)
 
 - **NotificationEvent**: `eventId`, `userId`, `type`, `payload`, `status`
 - **UserPreference**: `userId`, `optInEmail`, `optInSms`, `optInPush`
 
 ---
 
-## 3. API Design (~5 min)
+## 3. 🌐 API Design (~5 min)
 
 ### `POST /api/v1/notifications`
 - **Request Body**: `{ "userId": "123", "type": "ORDER_SHIPPED", "templateArgs": {"orderId": "abc"} }`
@@ -75,7 +84,7 @@
 
 ---
 
-## 4. Data Flow (5-10 min)
+## 4. 🔄 Data Flow (5-10 min)
 
 1. Client microservice calls Notification API.
 2. API validates request and pushes to an initial Kafka topic.
@@ -85,20 +94,19 @@
 
 ---
 
-## 5. High-Level Design (15-20 min)
+## 5. 🏗️ High-Level Design (15-20 min)
 
 ### High-Level Architecture
 ```mermaid
 graph TD
-    InternalAPI --> Gateway
-    Gateway --> Kafka_Ingestion
-    Kafka_Ingestion --> Processor
-    Processor --> UserPref[(Redis)]
-    Processor --> SMS_Queue
-    Processor --> Email_Queue
-    SMS_Queue --> TwilioWorker
-    Email_Queue --> SendGridWorker
+    A[Load Balancer] --> B[Service Cluster]
+    B --> C[(Primary DB)]
+    C -.->|Async Replication| D[(Read Replica)]
+    B --> E[(Redis Cache)]
 ```
+
+
+
 
 - **API Gateway / Ingestion**: Receives internal requests, does basic validation.
 - **Message Queues (Kafka/RabbitMQ)**: Critical for decoupling and buffering spikes in traffic.
@@ -108,32 +116,11 @@ graph TD
 
 ---
 
-## 6. Deep Dives (15-20 min)
+## 6. 🔬 Deep Dives (15-20 min)
 
-### Deep Dive / Data Flow
-```mermaid
-sequenceDiagram
-    participant API
-    participant P as Processor
-    participant Q as SMS Queue
-    participant W as Worker
-    participant T as Twilio
 
-    API->>P: Send Alert
-    P->>P: Render Template
-    P->>Q: Enqueue
-    W->>Q: Dequeue
-    W->>T: Call API
-    T-->>W: Success
-```
 
-### Generic Problem Component
-```mermaid
-graph LR
-    A[API Failures] --> B{Resiliency}
-    B --> C[Dead Letter Queue]
-    B --> D[Exponential Backoff]
-```
+
 
 ### Handling Third-Party Rate Limits and Failures
 - **Challenge**: Twilio might rate limit us or go down.
@@ -145,7 +132,7 @@ graph LR
 
 ---
 
-## 7. Address Key Issues (5 min)
+## 7. 🚧 Address Key Issues (5 min)
 
 ### Security
 - Internal IPs only. PII (emails/phone numbers) should be encrypted in the logs.

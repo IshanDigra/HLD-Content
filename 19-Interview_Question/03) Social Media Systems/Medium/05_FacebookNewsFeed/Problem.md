@@ -1,5 +1,14 @@
 # Facebook News Feed System Design
 
+> **System Overview Diagram**
+```mermaid
+graph LR
+    A[Client] -->|Requests| B(API Gateway)
+    B --> C[Core Services]
+    C --> D[(Database)]
+```
+
+
 | Step | Focus Area | Time Allocation | Key Activities |
 |------|-----------|----------------|----------------|
 | 1 | Requirements | 5-10 min | Clarify functional and non-functional requirements, identify core features |
@@ -23,7 +32,7 @@
 - [References & Original Diagrams](#references--original-diagrams)
 
 ---
-## 1. Requirements (5-10 min)
+## 1. 📋 Requirements (5-10 min)
 
 ### Functional Requirements
 - [ ] Users should be able to create posts.
@@ -55,7 +64,7 @@
 
 ---
 
-## 2. Core Entities (3-5 min)
+## 2. 🗄️ Core Entities (3-5 min)
 
 - **User**: `userId`, `name`, `profilePic`
 - **Post**: `postId`, `userId`, `content`, `timestamp`
@@ -64,7 +73,7 @@
 
 ---
 
-## 3. API Design (~5 min)
+## 3. 🌐 API Design (~5 min)
 
 ### `POST /api/v1/posts`
 - **Purpose**: Create a new post.
@@ -83,7 +92,7 @@
 
 ---
 
-## 4. Data Flow (5-10 min)
+## 4. 🔄 Data Flow (5-10 min)
 
 1. **Write Flow (Creating a post)**:
    - User submits a post to the API Gateway.
@@ -98,19 +107,19 @@
 
 ---
 
-## 5. High-Level Design (15-20 min)
+## 5. 🏗️ High-Level Design (15-20 min)
 
 ### High-Level Architecture
 ```mermaid
 graph TD
-    Client --> API
-    API --> FeedService
-    API --> PostService
-    PostService --> FanOutWorkers
-    FanOutWorkers --> FeedCache[(Redis Feed Cache)]
-    FeedService --> FeedCache
-    PostService --> PostDB[(Cassandra)]
+    A[Load Balancer] --> B[Service Cluster]
+    B --> C[(Primary DB)]
+    C -.->|Async Replication| D[(Read Replica)]
+    B --> E[(Redis Cache)]
 ```
+
+
+
 
 - **API Gateway**: Handles rate limiting and auth.
 - **User Service**: Manages profiles and follow relationships.
@@ -124,30 +133,11 @@ graph TD
 
 ---
 
-## 6. Deep Dives (15-20 min)
+## 6. 🔬 Deep Dives (15-20 min)
 
-### Deep Dive / Data Flow
-```mermaid
-sequenceDiagram
-    participant U as User
-    participant PS as Post Service
-    participant F as Fan-out Workers
-    participant RC as Redis Caches (Followers)
 
-    U->>PS: Create Post
-    PS->>PS: Save to DB
-    PS->>F: Async trigger
-    F->>F: Get follower list
-    F->>RC: Push postID to follower feed lists (Push Model)
-```
 
-### Generic Problem Component
-```mermaid
-graph LR
-    A[Feed Generation] --> B{Fan Out Strategy}
-    B --> C[Push Model for normal users]
-    B --> D[Pull Model for celebrities]
-```
+
 
 ### NoSQL Data Access Patterns
 - **Partition Key (PK)**: Determines the physical node holding the data.
@@ -172,7 +162,7 @@ graph LR
 
 ---
 
-## 7. Address Key Issues (5 min)
+## 7. 🚧 Address Key Issues (5 min)
 
 ### Fault Tolerance & Resiliency
 - Feed cache misses: If Redis drops a user's feed, the system must fallback to generating the feed via Fan-out on Read from the DB and repopulate the cache.

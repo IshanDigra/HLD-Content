@@ -1,5 +1,14 @@
 # Hotel Booking System Design
 
+> **System Overview Diagram**
+```mermaid
+graph LR
+    A[Client] -->|Requests| B(API Gateway)
+    B --> C[Core Services]
+    C --> D[(Database)]
+```
+
+
 | Step | Focus Area | Time Allocation | Key Activities |
 |------|-----------|----------------|----------------|
 | 1 | Requirements | 5-10 min | Clarify functional and non-functional requirements, identify core features |
@@ -23,7 +32,7 @@
 - [References & Original Diagrams](#references--original-diagrams)
 
 ---
-## 1. Requirements (5-10 min)
+## 1. 📋 Requirements (5-10 min)
 
 ### Functional Requirements
 - [ ] Users can search for hotels by location and dates.
@@ -59,7 +68,7 @@
 
 ---
 
-## 2. Core Entities (3-5 min)
+## 2. 🗄️ Core Entities (3-5 min)
 
 - **Hotel**: `hotelId`, `location`, `details`
 - **RoomType**: `typeId`, `hotelId`, `name`, `totalInventory`
@@ -68,7 +77,7 @@
 
 ---
 
-## 3. API Design (~5 min)
+## 3. 🌐 API Design (~5 min)
 
 ### `GET /api/v1/search`
 - **Parameters**: `location`, `checkIn`, `checkOut`, `guests`
@@ -80,7 +89,7 @@
 
 ---
 
-## 4. Data Flow (5-10 min)
+## 4. 🔄 Data Flow (5-10 min)
 
 1. User searches -> hits Search Service (ElasticSearch) -> returns fast results.
 2. User selects room -> hits Booking Service.
@@ -88,19 +97,19 @@
 
 ---
 
-## 5. High-Level Design (15-20 min)
+## 5. 🏗️ High-Level Design (15-20 min)
 
 ### High-Level Architecture
 ```mermaid
 graph TD
-    Client --> API
-    API --> SearchService
-    API --> BookingService
-    SearchService --> ElasticSearch[(Search Index)]
-    BookingService --> InventoryDB[(SQL DB)]
-    InventoryDB --> CDC(Debezium/Kafka)
-    CDC --> ElasticSearch
+    A[Load Balancer] --> B[Service Cluster]
+    B --> C[(Primary DB)]
+    C -.->|Async Replication| D[(Read Replica)]
+    B --> E[(Redis Cache)]
 ```
+
+
+
 
 - **Search Service**: Backed by ElasticSearch (geo-queries, fast text search).
 - **Inventory Service**: Manages room availability calendar. Backed by Relational DB.
@@ -110,30 +119,11 @@ graph TD
 
 ---
 
-## 6. Deep Dives (15-20 min)
+## 6. 🔬 Deep Dives (15-20 min)
 
-### Deep Dive / Data Flow
-```mermaid
-sequenceDiagram
-    participant C as Client
-    participant B as Booking Service
-    participant DB as SQL DB
 
-    C->>B: Book Room
-    B->>DB: SELECT FOR UPDATE
-    DB-->>B: Locked
-    B->>DB: UPDATE inventory
-    DB-->>B: Commit
-    B-->>C: Booking Success
-```
 
-### Generic Problem Component
-```mermaid
-graph LR
-    A[Double Booking] --> B{Concurrency Control}
-    B --> C[Pessimistic Locking]
-    B --> D[Optimistic Locking]
-```
+
 
 ### Handling Concurrency and Double Booking
 - **Challenge**: Two users try to book the last room simultaneously.
@@ -147,7 +137,7 @@ graph LR
 
 ---
 
-## 7. Address Key Issues (5 min)
+## 7. 🚧 Address Key Issues (5 min)
 
 ### Fault Tolerance & Payment States
 - Use a 2-Phase Commit or Saga Pattern for distributed transactions (Booking + Payment). If payment fails, the booking must be rolled back (inventory incremented).

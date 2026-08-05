@@ -1,5 +1,14 @@
 # JobScheduler System Design
 
+> **System Overview Diagram**
+```mermaid
+graph LR
+    A[Client] -->|Requests| B(API Gateway)
+    B --> C[Core Services]
+    C --> D[(Database)]
+```
+
+
 | Step | Focus Area | Time Allocation | Key Activities |
 |------|-----------|----------------|----------------|
 | 1 | Requirements | 5-10 min | Clarify functional and non-functional requirements, identify core features |
@@ -23,7 +32,7 @@
 - [References & Original Diagrams](#references--original-diagrams)
 
 ---
-## 1. Requirements (5-10 min)
+## 1. 📋 Requirements (5-10 min)
 
 ### Functional Requirements
 - [ ] Users can trigger workflows or schedule jobs (e.g. Cron).
@@ -56,14 +65,14 @@
 
 ---
 
-## 2. Core Entities (3-5 min)
+## 2. 🗄️ Core Entities (3-5 min)
 
 - **Job**: `jobId`, `payload`, `schedule_time`, `status`
 - **ExecutionLog**: `jobId`, `startTime`, `endTime`, `status`
 
 ---
 
-## 3. API Design (~5 min)
+## 3. 🌐 API Design (~5 min)
 
 ### `POST /api/v1/jobs`
 - **Purpose**: Schedule a job.
@@ -71,7 +80,7 @@
 
 ---
 
-## 4. Data Flow (5-10 min)
+## 4. 🔄 Data Flow (5-10 min)
 
 1. Client schedules job via API.
 2. Job is stored in Database.
@@ -81,18 +90,19 @@
 
 ---
 
-## 5. High-Level Design (15-20 min)
+## 5. 🏗️ High-Level Design (15-20 min)
 
 ### High-Level Architecture
 ```mermaid
 graph TD
-    Client --> API
-    API --> DB[(MySQL/Postgres)]
-    Scheduler --> DB
-    Scheduler --> Redis[(Redis Timing Wheel)]
-    Redis --> WorkerQueue
-    WorkerQueue --> Workers
+    A[Load Balancer] --> B[Service Cluster]
+    B --> C[(Primary DB)]
+    C -.->|Async Replication| D[(Read Replica)]
+    B --> E[(Redis Cache)]
 ```
+
+
+
 
 - **API Gateway**: Entry point.
 - **Scheduler Service**: The core component that checks the time and triggers executions.
@@ -102,32 +112,11 @@ graph TD
 
 ---
 
-## 6. Deep Dives (15-20 min)
+## 6. 🔬 Deep Dives (15-20 min)
 
-### Deep Dive / Data Flow
-```mermaid
-sequenceDiagram
-    participant DB
-    participant S as Scheduler
-    participant R as Redis
-    participant W as Worker
 
-    S->>DB: Fetch jobs due next 10 mins
-    S->>R: ZADD (Score=Timestamp)
-    loop Every Second
-        S->>R: ZRANGEBYSCORE <= NOW
-        R-->>S: Ready Jobs
-        S->>W: Execute
-    end
-```
 
-### Generic Problem Component
-```mermaid
-graph LR
-    A[Database Polling] --> B{Bottleneck}
-    B --> C[Hierarchical Timing Wheels]
-    B --> D[Batch fetch to memory]
-```
+
 
 ### The Polling Bottleneck
 - **Challenge**: Polling a massive SQL database every second for `WHERE status = 'PENDING' AND schedule_time <= NOW()` will kill the DB.
@@ -135,7 +124,7 @@ graph LR
 
 ---
 
-## 7. Address Key Issues (5 min)
+## 7. 🚧 Address Key Issues (5 min)
 
 ### Fault Tolerance & Distributed Locking
 - If two Schedulers pull the same job, it executes twice. Use Distributed Locks (Redis Redlock) or DB row-locking (`SELECT FOR UPDATE`) to ensure only one scheduler picks up a specific time bucket.

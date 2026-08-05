@@ -1,5 +1,14 @@
 # Load Balancer System Design
 
+> **System Overview Diagram**
+```mermaid
+graph LR
+    A[Client] -->|Requests| B(API Gateway)
+    B --> C[Core Services]
+    C --> D[(Database)]
+```
+
+
 | Step | Focus Area | Time Allocation | Key Activities |
 |------|-----------|----------------|----------------|
 | 1 | Requirements | 5-10 min | Clarify functional and non-functional requirements, identify core features |
@@ -23,7 +32,7 @@
 - [References & Original Diagrams](#references--original-diagrams)
 
 ---
-## 1. Requirements (5-10 min)
+## 1. 📋 Requirements (5-10 min)
 
 ### Functional Requirements
 - [ ] System must distribute incoming network traffic across multiple healthy servers.
@@ -58,7 +67,7 @@
 
 ---
 
-## 2. Core Entities (3-5 min)
+## 2. 🗄️ Core Entities (3-5 min)
 
 - **Target Server**: `ip_address`, `port`, `weight`, `health_status`
 - **Listener**: `port`, `protocol` (TCP, HTTP)
@@ -67,7 +76,7 @@
 
 ---
 
-## 3. API Design (~5 min)
+## 3. 🌐 API Design (~5 min)
 
 *(While a LB intercepts standard web traffic, it requires an API for control/management)*
 
@@ -82,7 +91,7 @@
 
 ---
 
-## 4. Data Flow (5-10 min)
+## 4. 🔄 Data Flow (5-10 min)
 
 1. Client sends a request (e.g., HTTP `GET /api/data`).
 2. DNS resolves the domain to the IP of the Load Balancer.
@@ -94,17 +103,19 @@
 
 ---
 
-## 5. High-Level Design (15-20 min)
+## 5. 🏗️ High-Level Design (15-20 min)
 
 ### High-Level Architecture
 ```mermaid
 graph TD
-    Client --> VIP(Virtual IP)
-    VIP --> ActiveLB(Active LB)
-    ActiveLB -. VRRP .- PassiveLB(Passive LB)
-    ActiveLB --> Server1
-    ActiveLB --> Server2
+    A[Load Balancer] --> B[Service Cluster]
+    B --> C[(Primary DB)]
+    C -.->|Async Replication| D[(Read Replica)]
+    B --> E[(Redis Cache)]
 ```
+
+
+
 
 - **DNS Layer**: Uses DNS Load Balancing to route users to multiple physical Load Balancer IPs.
 - **Load Balancer Nodes (Active-Active)**:
@@ -116,31 +127,11 @@ graph TD
 
 ---
 
-## 6. Deep Dives (15-20 min)
+## 6. 🔬 Deep Dives (15-20 min)
 
-### Deep Dive / Data Flow
-```mermaid
-sequenceDiagram
-    participant C as Client
-    participant LB as Load Balancer
-    participant S as Server
 
-    C->>LB: TCP SYN
-    LB-->>C: TCP SYN-ACK
-    C->>LB: TLS Client Hello
-    LB->>LB: Terminate SSL
-    LB->>S: Forward HTTP Payload
-    S-->>LB: Response
-    LB-->>C: Response
-```
 
-### Generic Problem Component
-```mermaid
-graph LR
-    A[Single Point of Failure] --> B{Redundancy}
-    B --> C[Active/Passive Setup]
-    C --> D[VRRP failover]
-```
+
 
 ### Layer 4 vs Layer 7 Load Balancing
 - **Layer 4 (Transport)**: Operates on IP and Port. It does not inspect the HTTP body. Very fast, uses NAT (Network Address Translation). Good for massive scale raw TCP throughput.
@@ -154,7 +145,7 @@ graph LR
 
 ---
 
-## 7. Address Key Issues (5 min)
+## 7. 🚧 Address Key Issues (5 min)
 
 ### Eliminating the LB as a SPOF
 - Use multiple LB instances managed by **VRRP (Virtual Router Redundancy Protocol)** or Keepalived.

@@ -1,5 +1,14 @@
 # News Aggregator System Design
 
+> **System Overview Diagram**
+```mermaid
+graph LR
+    A[Client] -->|Requests| B(API Gateway)
+    B --> C[Core Services]
+    C --> D[(Database)]
+```
+
+
 | Step | Focus Area | Time Allocation | Key Activities |
 |------|-----------|----------------|----------------|
 | 1 | Requirements | 5-10 min | Clarify functional and non-functional requirements, identify core features |
@@ -23,7 +32,7 @@
 - [References & Original Diagrams](#references--original-diagrams)
 
 ---
-## 1. Requirements (5-10 min)
+## 1. 📋 Requirements (5-10 min)
 
 ### Functional Requirements
 - [ ] System automatically crawls and extracts news from various RSS feeds or websites.
@@ -62,7 +71,7 @@
 
 ---
 
-## 2. Core Entities (3-5 min)
+## 2. 🗄️ Core Entities (3-5 min)
 
 - **Source**: `sourceId`, `url`, `type` (RSS, Web), `crawlFrequency`
 - **Article**: `articleId`, `sourceId`, `title`, `content`, `url`, `publishedAt`
@@ -70,7 +79,7 @@
 
 ---
 
-## 3. API Design (~5 min)
+## 3. 🌐 API Design (~5 min)
 
 ### `GET /api/v1/news/feed`
 - **Purpose**: Get aggregated news feed for the user.
@@ -83,7 +92,7 @@
 
 ---
 
-## 4. Data Flow (5-10 min)
+## 4. 🔄 Data Flow (5-10 min)
 
 1. **Ingestion**: Scheduler triggers crawler to fetch RSS feeds -> HTML/XML parsed -> Articles saved to DB and indexed in ElasticSearch.
 2. **Serving**: User requests feed -> API queries Cache or DB -> Returns articles.
@@ -91,18 +100,19 @@
 
 ---
 
-## 5. High-Level Design (15-20 min)
+## 5. 🏗️ High-Level Design (15-20 min)
 
 ### High-Level Architecture
 ```mermaid
 graph TD
-    Client --> API
-    API --> FeedService
-    FeedService --> Cache[(Redis)]
-    FeedService --> DB[(Cassandra)]
-    Crawler --> Dedup(Deduplication Service)
-    Dedup --> DB
+    A[Load Balancer] --> B[Service Cluster]
+    B --> C[(Primary DB)]
+    C -.->|Async Replication| D[(Read Replica)]
+    B --> E[(Redis Cache)]
 ```
+
+
+
 
 - **Feed Aggregator/Crawler**: Background workers (e.g., Celery/Kafka consumers) that fetch and parse external feeds.
 - **Deduplication Service**: Checks if the article was already fetched (using URL hash or content hashing).
@@ -112,35 +122,11 @@ graph TD
 
 ---
 
-## 6. Deep Dives (15-20 min)
+## 6. 🔬 Deep Dives (15-20 min)
 
-### Deep Dive / Data Flow
-```mermaid
-sequenceDiagram
-    participant C as Crawler
-    participant D as Dedup
-    participant DB as Database
 
-    C->>C: Fetch RSS XML
-    C->>D: Extract Content
-    D->>D: SimHash computation
-    D->>DB: Check Similarity
-    alt Is New
-        DB-->>D: No matches
-        D->>DB: Store Article
-    else Duplicate
-        DB-->>D: Found Match
-        D->>D: Discard
-    end
-```
 
-### Generic Problem Component
-```mermaid
-graph LR
-    A[Duplicate News] --> B{SimHash}
-    B --> C[Generate fingerprint]
-    C --> D[Compare Hamming distance]
-```
+
 
 ### Content Deduplication
 - **Challenge**: Multiple news sites might report the exact same AP/Reuters wire story. Showing the same story 5 times ruins the UX.
@@ -148,7 +134,7 @@ graph LR
 
 ---
 
-## 7. Address Key Issues (5 min)
+## 7. 🚧 Address Key Issues (5 min)
 
 ### Fault Tolerance & Resiliency
 - Ensure crawlers respect `robots.txt` and employ exponential backoff if a target news site goes down, to avoid infinite failing loops.

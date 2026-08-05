@@ -1,5 +1,14 @@
 # PasteBin System Design
 
+> **System Overview Diagram**
+```mermaid
+graph LR
+    A[Client] -->|Requests| B(API Gateway)
+    B --> C[Core Services]
+    C --> D[(Database)]
+```
+
+
 | Step | Focus Area | Time Allocation | Key Activities |
 |------|-----------|----------------|----------------|
 | 1 | Requirements | 5-10 min | Clarify functional and non-functional requirements, identify core features |
@@ -23,7 +32,7 @@
 - [References & Original Diagrams](#references--original-diagrams)
 
 ---
-## 1. Requirements (5-10 min)
+## 1. 📋 Requirements (5-10 min)
 
 ### Functional Requirements
 - [ ] Users should be able to upload or paste text and get a unique URL to share it.
@@ -66,14 +75,14 @@
 
 ---
 
-## 2. Core Entities (3-5 min)
+## 2. 🗄️ Core Entities (3-5 min)
 
 - **Paste**: `pasteId` (PK), `contentUrl` (if stored in S3), `userId`, `expirationDate`, `isPrivate`, `passwordHash`
 - **User** (optional): `userId`, `email`
 
 ---
 
-## 3. API Design (~5 min)
+## 3. 🌐 API Design (~5 min)
 
 ### `POST /api/v1/pastes`
 - **Purpose**: Create a new paste.
@@ -86,7 +95,7 @@
 
 ---
 
-## 4. Data Flow (5-10 min)
+## 4. 🔄 Data Flow (5-10 min)
 
 1. **Write Flow**: Client sends text -> Gateway -> Write Service gets a unique ID -> Uploads text to Object Storage (S3) -> Saves metadata in DB -> Returns URL.
 2. **Read Flow**: Client requests ID -> Gateway -> Read Service checks Metadata DB -> Fetches text from Cache or Object Storage -> Returns text.
@@ -94,20 +103,19 @@
 
 ---
 
-## 5. High-Level Design (15-20 min)
+## 5. 🏗️ High-Level Design (15-20 min)
 
 ### High-Level Architecture
 ```mermaid
 graph TD
-    Client --> API_Gateway
-    API_Gateway --> Paste_Service
-    API_Gateway --> Read_Service
-    Paste_Service --> S3[(Object Storage)]
-    Paste_Service --> MetaDB[(Metadata DB)]
-    Read_Service --> Cache[(Redis Cache)]
-    Read_Service --> MetaDB
-    Read_Service --> S3
+    A[Load Balancer] --> B[Service Cluster]
+    B --> C[(Primary DB)]
+    C -.->|Async Replication| D[(Read Replica)]
+    B --> E[(Redis Cache)]
 ```
+
+
+
 
 - **API Gateway**: Routing, Rate Limiting, Auth.
 - **Key Generation Service (KGS)**: Pre-generates unique 6-8 character strings (similar to URL Shortener) to use as paste IDs.
@@ -118,34 +126,11 @@ graph TD
 
 ---
 
-## 6. Deep Dives (15-20 min)
+## 6. 🔬 Deep Dives (15-20 min)
 
-### Deep Dive / Data Flow
-```mermaid
-sequenceDiagram
-    participant C as Client
-    participant GW as API Gateway
-    participant PS as Paste Service
-    participant S3 as Object Storage
-    participant DB as Metadata DB
 
-    C->>GW: POST /paste (text data)
-    GW->>PS: Forward Request
-    PS->>S3: Upload text as file
-    S3-->>PS: Return S3 URL
-    PS->>DB: Save S3 URL & generated ID
-    DB-->>PS: Success
-    PS-->>GW: Return Paste URL
-    GW-->>C: Response
-```
 
-### Generic Problem Component
-```mermaid
-graph LR
-    A[Database Bloat] --> B{Storage Strategy}
-    B -->|Metadata| C[Relational/NoSQL DB]
-    B -->|Raw Text| D[Object Storage S3]
-```
+
 
 ### Storage Strategy
 - **Challenge**: Pastes can be up to 10MB. Storing millions of 10MB strings in a relational database or Cassandra will cause massive bloat and performance degradation.
@@ -160,7 +145,7 @@ graph LR
 
 ---
 
-## 7. Address Key Issues (5 min)
+## 7. 🚧 Address Key Issues (5 min)
 
 ### Fault Tolerance & Resiliency
 - S3 natively provides 99.999999999% durability.

@@ -1,5 +1,13 @@
 # DropBox/GoogleDrive System Design
 
+> **System Overview Diagram**
+```mermaid
+graph LR
+    A[User Devices] <-->|Sync| B(Cloud Storage Platform)
+    B <--> C[(Petabytes of Blocks)]
+```
+
+
 | Step | Focus Area | Time Allocation | Key Activities |
 |------|-----------|----------------|----------------|
 | 1 | Requirements | 5-10 min | Clarify functional and non-functional requirements, identify core features |
@@ -23,7 +31,7 @@
 - [References & Original Diagrams](#references--original-diagrams)
 
 ---
-## 1. Requirements (5-10 min)
+## 1. 📋 Requirements (5-10 min)
 
 ### Functional Requirements
 - [ ] Users should be able to upload files from any device.
@@ -66,7 +74,7 @@
 
 ---
 
-## 2. Core Entities (3-5 min)
+## 2. 🗄️ Core Entities (3-5 min)
 
 - **User**: `userId`, `name`, `email`
 - **File**: `fileId`, `s3Url`, `size`, `checksum`
@@ -78,7 +86,7 @@
 
 ---
 
-## 3. API Design (~5 min)
+## 3. 🌐 API Design (~5 min)
 
 ### `POST /Files`
 - **Purpose**: Upload a new file.
@@ -98,7 +106,7 @@
 
 ---
 
-## 4. Data Flow (5-10 min)
+## 4. 🔄 Data Flow (5-10 min)
 
 ### Upload & Sync Flow
 1. Client breaks large files into smaller chunks.
@@ -111,18 +119,21 @@
 
 ---
 
-## 5. High-Level Design (15-20 min)
+## 5. 🏗️ High-Level Design (15-20 min)
 
 ### High-Level Architecture
 ```mermaid
 graph TD
-    Client -->|Upload| Gateway
-    Gateway --> Block(Block Server)
-    Gateway --> Meta(Metadata Server)
-    Block --> S3[(Object Storage)]
-    Meta --> DB[(SQL DB)]
-    Meta --> Sync(Sync Service)
+    A[Client] --> B[Block Server]
+    B --> C{Chunk Hasher}
+    C -->|Hash Exists| D[Metadata Update Only]
+    C -->|New Hash| E[Upload to S3]
+    F[Sync Service] --> G[[Message Queue]]
+    G --> H[WebSocket Notifier]
 ```
+
+
+
 
 - **Client Application**: Desktop/Mobile app running a sync agent.
 - **API Gateway**: Load balancing, auth verification (JWT).
@@ -134,53 +145,36 @@ graph TD
 
 ---
 
-## 6. Deep Dives (15-20 min)
+## 6. 🔬 Deep Dives (15-20 min)
 
-### Deep Dive / Data Flow
-```mermaid
-sequenceDiagram
-    participant C as Client
-    participant B as Block Server
-    participant S3 as Object Storage
-    C->>B: Chunk 1
-    B->>S3: Save Chunk
-    B-->>C: Ack
-```
+### 📦 Block Storage & Chunking
+> **Challenge**: Uploading a 10GB file natively takes too long, consumes massive memory, and if the network drops at 99%, the entire upload fails.
+>
+> **Solution**: The client application breaks files into smaller blocks (e.g., 4MB chunks).
+> - Blocks are uploaded in parallel to the `Block Servers`.
+> - The `Metadata DB` stores an ordered array of `block_ids` for a given file.
+> - **Trade-offs**: Increases metadata complexity significantly, but allows resumable uploads and delta syncs.
 
-### Generic Problem Component
-```mermaid
-graph LR
-    A[Large File] --> B[4MB Chunks]
-    B --> C[Hash each chunk]
-    C --> D{Deduplication}
-```
+### 🔄 Delta Sync & Deduplication
+> **Challenge**: Minimizing bandwidth and storage when thousands of users upload the exact same viral video, or when a user changes just one sentence in a 1GB text file.
+>
+> **Solution**:
+> - **Delta Sync**: If a user modifies a file, the client only hashes and uploads the *modified* 4MB blocks, not the entire file.
+> - **Deduplication**: Calculate a SHA-256 hash for every block. Before uploading, the client asks the metadata server if the hash exists. If multiple users upload the exact same block, we store only one physical copy in S3 and reference it multiple times in the DB.
 
-### Handling Large Files efficiently (Block Storage)
-- **Challenge**: Uploading a 10GB file natively takes too long and is prone to network interruptions.
-- **Solution**: Break files into smaller blocks (e.g., 4MB chunks) on the client side. Upload blocks in parallel. Store block IDs and their sequence in the metadata.
-- **Trade-offs**: Increases metadata complexity, but allows resumable uploads and delta syncs (uploading only changed blocks).
+## 7. 🚧 Address Key Issues (5 min)
 
-### Delta Sync & Deduplication
-- **Challenge**: Minimizing bandwidth when syncing files.
-- **Solution**:
-  - **Delta Sync**: If a user modifies a file, only the modified blocks are hashed and uploaded.
-  - **Deduplication**: Calculate hashes (e.g., SHA-256) of blocks. If multiple users upload the exact same file (or block), store only one copy in S3 and reference it multiple times in the metadata DB.
+### 🛡️ Fault Tolerance & Resiliency
+- **ACID Metadata**: The Metadata DB needs strict ACID guarantees (e.g., PostgreSQL or Spanner) because file permissions, paths, and block sequences cannot be eventually consistent without causing severe user corruption. Use Leader-Follower replication.
+- **S3 Durability**: Object storage natively replicates across multiple AZs offering 99.999999999% durability.
 
----
+### 🔐 Security
+- Files must be encrypted at rest in S3 using AES-256.
+- Strict authorization checks in Metadata servers before granting S3 Pre-signed URLs for block downloads.
 
-## 7. Address Key Issues (5 min)
-
-### Fault Tolerance & Resiliency
-- Metadata DB needs strict ACID guarantees (e.g., PostgreSQL or MySQL). Use Leader-Follower replication.
-- Object storage natively replicates across multiple AZs.
-
-### Security
-- Files must be encrypted at rest in S3.
-- Secure transit via TLS.
-- Strict authorization checks in Metadata servers before granting S3 Pre-signed URLs for block download.
-
-### Monitoring & Observability
-- Track upload failure rates, sync latency, and storage consumption.
+### 💡 Key Concepts on the Go
+- **Checksumming**: Essential for verifying data integrity. The client hashes the file, and the server verifies it upon receipt to ensure bits weren't flipped during transit.
+- **Long Polling vs WebSockets**: To notify clients of changes, WebSockets provide true real-time, bi-directional communication, while Long Polling is a fallback for restrictive corporate firewalls.
 
 ## References & Original Diagrams
 - [DropBox_GoogleDrive.excalidraw](./DropBox_GoogleDrive.excalidraw)

@@ -1,5 +1,14 @@
 # Facebook Live Comments System Design
 
+> **System Overview Diagram**
+```mermaid
+graph LR
+    A[Client] -->|Requests| B(API Gateway)
+    B --> C[Core Services]
+    C --> D[(Database)]
+```
+
+
 | Step | Focus Area | Time Allocation | Key Activities |
 |------|-----------|----------------|----------------|
 | 1 | Requirements | 5-10 min | Clarify functional and non-functional requirements, identify core features |
@@ -23,7 +32,7 @@
 - [References & Original Diagrams](#references--original-diagrams)
 
 ---
-## 1. Requirements (5-10 min)
+## 1. 📋 Requirements (5-10 min)
 
 ### Functional Requirements
 - [ ] Users can broadcast live video.
@@ -55,14 +64,14 @@
 
 ---
 
-## 2. Core Entities (3-5 min)
+## 2. 🗄️ Core Entities (3-5 min)
 
 - **LiveStream**: `streamId`, `broadcasterId`, `status`, `startTime`
 - **Comment**: `commentId`, `streamId`, `userId`, `content`, `timestamp`
 
 ---
 
-## 3. API Design (~5 min)
+## 3. 🌐 API Design (~5 min)
 
 ### `POST /api/v1/streams/:id/comments` (Can also be WebSocket)
 - **Purpose**: Post a comment to a live stream.
@@ -73,7 +82,7 @@
 
 ---
 
-## 4. Data Flow (5-10 min)
+## 4. 🔄 Data Flow (5-10 min)
 
 1. User sends a comment to the API Gateway.
 2. Comment Service stores it in a fast in-memory DB and publishes it to a Pub/Sub system (Kafka/Redis).
@@ -82,17 +91,19 @@
 
 ---
 
-## 5. High-Level Design (15-20 min)
+## 5. 🏗️ High-Level Design (15-20 min)
 
 ### High-Level Architecture
 ```mermaid
 graph TD
-    Viewer --> LB
-    LB --> Conn(Connection Server)
-    Conn --> CommentService
-    CommentService --> PubSub[[Pub/Sub Cluster]]
-    PubSub --> Conn
+    A[Load Balancer] --> B[Service Cluster]
+    B --> C[(Primary DB)]
+    C -.->|Async Replication| D[(Read Replica)]
+    B --> E[(Redis Cache)]
 ```
+
+
+
 
 - **Connection Managers**: Maintain WebSocket connections with viewers.
 - **Pub/Sub (Redis/Kafka)**: Handles the high-throughput fan-out of messages.
@@ -102,30 +113,11 @@ graph TD
 
 ---
 
-## 6. Deep Dives (15-20 min)
+## 6. 🔬 Deep Dives (15-20 min)
 
-### Deep Dive / Data Flow
-```mermaid
-sequenceDiagram
-    participant V as Viewer (Write)
-    participant CS as Comment Service
-    participant PS as Pub/Sub
-    participant C_Servers as Conn Servers
-    participant R as Viewers (Read)
 
-    V->>CS: Post Comment
-    CS->>PS: Publish
-    Note over PS, C_Servers: Throttle & Sample (Thundering Herd)
-    PS->>C_Servers: Subsampled comments
-    C_Servers->>R: Push via WebSocket
-```
 
-### Generic Problem Component
-```mermaid
-graph LR
-    A[50 Billion Ops/Sec Fanout] --> B{Throttling / Sampling}
-    B --> C[Limit 5 comments/sec per client]
-```
+
 
 ### Managing Massive Fan-Out (The Thundering Herd)
 - **Challenge**: A celebrity has 1M viewers. If 10k users comment per second, pushing 10k comments to 1M viewers = 10 Billion operations/sec. This will crash the system.
@@ -136,7 +128,7 @@ graph LR
 
 ---
 
-## 7. Address Key Issues (5 min)
+## 7. 🚧 Address Key Issues (5 min)
 
 ### Fault Tolerance & Resiliency
 - Connection Manager drops: Client automatically reconnects.

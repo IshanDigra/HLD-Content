@@ -1,5 +1,14 @@
 # Distributed Rate Limiter System Design
 
+> **System Overview Diagram**
+```mermaid
+graph LR
+    A[Client] -->|Requests| B(API Gateway)
+    B --> C[Core Services]
+    C --> D[(Database)]
+```
+
+
 | Step | Focus Area | Time Allocation | Key Activities |
 |------|-----------|----------------|----------------|
 | 1 | Requirements | 5-10 min | Clarify functional and non-functional requirements, identify core features |
@@ -23,7 +32,7 @@
 - [References & Original Diagrams](#references--original-diagrams)
 
 ---
-## 1. Requirements (5-10 min)
+## 1. 📋 Requirements (5-10 min)
 
 ### Functional Requirements
 - [ ] Identify clients by User ID, IP address, or API key to apply appropriate limits.
@@ -59,14 +68,14 @@
 
 ---
 
-## 2. Core Entities (3-5 min)
+## 2. 🗄️ Core Entities (3-5 min)
 
 - **Rule**: `ruleId`, `identifierType` (IP, UserId), `limit`, `timeWindow` (e.g., 1 minute).
 - **Counter/State**: `key` (e.g., `user:123:api:/upload`), `count`, `window_timestamp`.
 
 ---
 
-## 3. API Design (~5 min)
+## 3. 🌐 API Design (~5 min)
 
 *(Rate Limiting is typically enforced via interceptors/middleware, but rules can be managed via API)*
 
@@ -76,7 +85,7 @@
 
 ---
 
-## 4. Data Flow (5-10 min)
+## 4. 🔄 Data Flow (5-10 min)
 
 1. Client sends request to the API Gateway.
 2. Gateway extracts identifier (User ID / IP).
@@ -86,16 +95,19 @@
 
 ---
 
-## 5. High-Level Design (15-20 min)
+## 5. 🏗️ High-Level Design (15-20 min)
 
 ### High-Level Architecture
 ```mermaid
 graph TD
-    Client --> API_Gateway
-    API_Gateway --> RateLimiterMiddleware
-    RateLimiterMiddleware --> Redis[(Redis Cluster)]
-    RateLimiterMiddleware --> BackendServices
+    A[Load Balancer] --> B[Service Cluster]
+    B --> C[(Primary DB)]
+    C -.->|Async Replication| D[(Read Replica)]
+    B --> E[(Redis Cache)]
 ```
+
+
+
 
 ### Where to Place the Rate Limiter?
 - **Bad**: Alongside the server. *Issue: Servers are not aware of the global request count, making limits inaccurate.*
@@ -109,31 +121,11 @@ graph TD
 
 ---
 
-## 6. Deep Dives (15-20 min)
+## 6. 🔬 Deep Dives (15-20 min)
 
-### Deep Dive / Data Flow
-```mermaid
-sequenceDiagram
-    participant G as API Gateway
-    participant R as Redis
-    participant B as Backend
 
-    G->>R: EVAL Lua Script (INCR, EXPIRE)
-    R-->>G: Current Count
-    alt Count < Limit
-        G->>B: Route Request
-    else Count >= Limit
-        G-->>Client: 429 Too Many Requests
-    end
-```
 
-### Generic Problem Component
-```mermaid
-graph LR
-    A[Algorithms] --> B{Fixed Window}
-    A --> C{Sliding Window Log}
-    A --> D{Token Bucket}
-```
+
 
 ### Rate Limiting Algorithms
 - **Token Bucket**: Bucket holds tokens. Tokens added at fixed rate. Request takes a token. (Good for burst traffic).
@@ -148,7 +140,7 @@ graph LR
 
 ---
 
-## 7. Address Key Issues (5 min)
+## 7. 🚧 Address Key Issues (5 min)
 
 ### Fault Tolerance & Resiliency
 - **Fail-Open**: If Redis or the RL service goes down, the Gateway should "Fail-Open" (allow requests to pass through). It's better to overload the backend slightly than to take the entire API offline ("Fail-Closed").

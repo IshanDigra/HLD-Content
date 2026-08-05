@@ -1,5 +1,14 @@
 # Payment Gateway System Design
 
+> **System Overview Diagram**
+```mermaid
+graph LR
+    A[Client] -->|Requests| B(API Gateway)
+    B --> C[Core Services]
+    C --> D[(Database)]
+```
+
+
 | Step | Focus Area | Time Allocation | Key Activities |
 |------|-----------|----------------|----------------|
 | 1 | Requirements | 5-10 min | Clarify functional and non-functional requirements, identify core features |
@@ -23,7 +32,7 @@
 - [References & Original Diagrams](#references--original-diagrams)
 
 ---
-## 1. Requirements (5-10 min)
+## 1. 📋 Requirements (5-10 min)
 
 ### Functional Requirements
 - [ ] Provide APIs for merchants to process credit card payments.
@@ -61,7 +70,7 @@
 
 ---
 
-## 2. Core Entities (3-5 min)
+## 2. 🗄️ Core Entities (3-5 min)
 
 - **Merchant**: `merchantId`, `apiKeys`, `bankAccount`
 - **Transaction**: `transactionId`, `merchantId`, `amount`, `currency`, `status` (Pending, Success, Failed), `cardToken`
@@ -69,7 +78,7 @@
 
 ---
 
-## 3. API Design (~5 min)
+## 3. 🌐 API Design (~5 min)
 
 ### `POST /api/v1/payments`
 - **Purpose**: Initiate a charge.
@@ -78,7 +87,7 @@
 
 ---
 
-## 4. Data Flow (5-10 min)
+## 4. 🔄 Data Flow (5-10 min)
 
 1. User checks out on merchant site. Merchant UI gets a secure Card Token from our Frontend.
 2. Merchant Backend calls our API `/payments` with the Token.
@@ -90,17 +99,19 @@
 
 ---
 
-## 5. High-Level Design (15-20 min)
+## 5. 🏗️ High-Level Design (15-20 min)
 
 ### High-Level Architecture
 ```mermaid
 graph TD
-    Merchant --> API
-    API --> TokenVault(Secure Vault)
-    API --> PaymentCore
-    PaymentCore --> BankNetwork
-    PaymentCore --> LedgerDB[(Postgres)]
+    A[Load Balancer] --> B[Service Cluster]
+    B --> C[(Primary DB)]
+    C -.->|Async Replication| D[(Read Replica)]
+    B --> E[(Redis Cache)]
 ```
+
+
+
 
 - **API Gateway**: Handles Auth (API Keys) and Rate Limiting.
 - **Payment Processing Service**: Core logic orchestrating the transaction.
@@ -111,30 +122,11 @@ graph TD
 
 ---
 
-## 6. Deep Dives (15-20 min)
+## 6. 🔬 Deep Dives (15-20 min)
 
-### Deep Dive / Data Flow
-```mermaid
-sequenceDiagram
-    participant M as Merchant
-    participant P as Payment Gateway
-    participant B as Bank API
 
-    M->>P: Charge Token (Idempotency Key X)
-    P->>P: Check DB for Key X
-    P->>B: Execute Charge
-    B-->>P: Success
-    P->>P: Store Result against Key X
-    P-->>M: Payment Successful
-```
 
-### Generic Problem Component
-```mermaid
-graph LR
-    A[PCI DSS] --> B{Tokenization}
-    B --> C[Isolate Sensitive Card Data]
-    C --> D[Return meaningless Token to Merchants]
-```
+
 
 ### Idempotency (Preventing Double Charges)
 - **Challenge**: The merchant's server makes a request. Our server charges the card successfully. The network drops before we reply to the merchant. The merchant retries the request. The customer is charged twice.
@@ -149,7 +141,7 @@ graph LR
 
 ---
 
-## 7. Address Key Issues (5 min)
+## 7. 🚧 Address Key Issues (5 min)
 
 ### Security (PCI-DSS)
 - **Tokenization**: Merchants never touch the actual credit card number. Our UI directly sends the CC number to our secure Vault Service, bypassing our main application servers. The Vault returns a meaningless Token, which the merchant then uses in API calls.

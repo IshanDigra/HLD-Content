@@ -1,5 +1,14 @@
 # Ad Click Aggregator System Design
 
+> **System Overview Diagram**
+```mermaid
+graph LR
+    A[Client] -->|Requests| B(API Gateway)
+    B --> C[Core Services]
+    C --> D[(Database)]
+```
+
+
 | Step | Focus Area | Time Allocation | Key Activities |
 |------|-----------|----------------|----------------|
 | 1 | Requirements | 5-10 min | Clarify functional and non-functional requirements, identify core features |
@@ -23,7 +32,7 @@
 - [References & Original Diagrams](#references--original-diagrams)
 
 ---
-## 1. Requirements (5-10 min)
+## 1. 📋 Requirements (5-10 min)
 
 ### Functional Requirements
 - [ ] Aggregate ad clicks over various time windows (last 1 minute, 1 hour, 1 day).
@@ -61,14 +70,14 @@
 
 ---
 
-## 2. Core Entities (3-5 min)
+## 2. 🗄️ Core Entities (3-5 min)
 
 - **ClickEvent**: `adId`, `userId`, `timestamp`, `ipAddress`
 - **AggregatedMetrics**: `adId`, `timeWindow` (e.g., `2024-05-12T10:00Z`), `clickCount`
 
 ---
 
-## 3. API Design (~5 min)
+## 3. 🌐 API Design (~5 min)
 
 ### `POST /api/v1/clicks`
 - **Purpose**: Record a click.
@@ -80,7 +89,7 @@
 
 ---
 
-## 4. Data Flow (5-10 min)
+## 4. 🔄 Data Flow (5-10 min)
 
 1. User clicks an Ad -> API Gateway -> Click gets appended to a Message Queue (Kafka).
 2. Stream Processing Engine (Flink/Spark) consumes the stream, deduplicates clicks, and aggregates counts using Tumbling/Sliding windows.
@@ -89,17 +98,19 @@
 
 ---
 
-## 5. High-Level Design (15-20 min)
+## 5. 🏗️ High-Level Design (15-20 min)
 
 ### High-Level Architecture
 ```mermaid
 graph TD
-    AdClick --> API
-    API --> Kafka
-    Kafka --> Flink(Apache Flink)
-    Flink --> Druid[(Time-Series DB)]
-    Dashboard --> Druid
+    A[Load Balancer] --> B[Service Cluster]
+    B --> C[(Primary DB)]
+    C -.->|Async Replication| D[(Read Replica)]
+    B --> E[(Redis Cache)]
 ```
+
+
+
 
 - **Kafka**: Highly durable, partitioned message queue to absorb the massive write load of click events.
 - **Apache Flink**: Real-time stream processing engine that supports exactly-once processing semantics and windowing functions.
@@ -108,28 +119,11 @@ graph TD
 
 ---
 
-## 6. Deep Dives (15-20 min)
+## 6. 🔬 Deep Dives (15-20 min)
 
-### Deep Dive / Data Flow
-```mermaid
-sequenceDiagram
-    participant K as Kafka
-    participant F as Flink
-    participant DB as Druid
 
-    K->>F: Raw Clicks Stream
-    F->>F: 1 Minute Tumbling Window
-    F->>F: Deduplicate (Bloom Filter)
-    F->>DB: Write Aggregate (Ad1: 50 clicks)
-```
 
-### Generic Problem Component
-```mermaid
-graph LR
-    A[Late Events] --> B{Watermarks}
-    B --> C[Allow grace period]
-    B --> D[Discard extremely late data]
-```
+
 
 ### Exactly-Once Processing & Deduplication
 - **Challenge**: A user clicks twice by mistake, or network lag causes the client to retry sending the click event. We shouldn't charge the advertiser twice.
@@ -144,7 +138,7 @@ graph LR
 
 ---
 
-## 7. Address Key Issues (5 min)
+## 7. 🚧 Address Key Issues (5 min)
 
 ### Storage Optimization
 - Raw click logs are moved from Kafka to cheap S3 storage after a few days. The fast Time-Series DB only holds pre-aggregated data (e.g., `Ad 123 got 50 clicks between 10:00 and 10:01`), saving massive amounts of space.

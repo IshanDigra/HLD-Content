@@ -1,5 +1,14 @@
 # Facebook Post Search System Design
 
+> **System Overview Diagram**
+```mermaid
+graph LR
+    A[Client] -->|Requests| B(API Gateway)
+    B --> C[Core Services]
+    C --> D[(Database)]
+```
+
+
 | Step | Focus Area | Time Allocation | Key Activities |
 |------|-----------|----------------|----------------|
 | 1 | Requirements | 5-10 min | Clarify functional and non-functional requirements, identify core features |
@@ -23,7 +32,7 @@
 - [References & Original Diagrams](#references--original-diagrams)
 
 ---
-## 1. Requirements (5-10 min)
+## 1. 📋 Requirements (5-10 min)
 
 ### Functional Requirements
 - [ ] Users can search for posts they have written or posts written by their friends.
@@ -62,14 +71,14 @@
 
 ---
 
-## 2. Core Entities (3-5 min)
+## 2. 🗄️ Core Entities (3-5 min)
 
 - **Post**: `postId`, `authorId`, `content`, `timestamp`, `privacyScope`
 - **User**: `userId`, `friendList`
 
 ---
 
-## 3. API Design (~5 min)
+## 3. 🌐 API Design (~5 min)
 
 ### `GET /api/v1/search/posts`
 - **Parameters**: `query` (e.g., "birthday party"), `cursor`, `limit`
@@ -77,24 +86,26 @@
 
 ---
 
-## 4. Data Flow (5-10 min)
+## 4. 🔄 Data Flow (5-10 min)
 
 1. User creates a post -> Post is saved in DB -> A Kafka event is fired -> Indexer consumes event and updates the Search Index.
 2. User searches -> API Gateway -> Search Service -> Queries Index for matching terms -> Filters results by user's social graph (friends) -> Ranks and returns.
 
 ---
 
-## 5. High-Level Design (15-20 min)
+## 5. 🏗️ High-Level Design (15-20 min)
 
 ### High-Level Architecture
 ```mermaid
 graph TD
-    Client --> API
-    API --> SearchAggregator
-    SearchAggregator --> SocialGraphDB
-    SearchAggregator --> IndexShard1[(Index A-M)]
-    SearchAggregator --> IndexShard2[(Index N-Z)]
+    A[Load Balancer] --> B[Service Cluster]
+    B --> C[(Primary DB)]
+    C -.->|Async Replication| D[(Read Replica)]
+    B --> E[(Redis Cache)]
 ```
+
+
+
 
 - **Search Index (Inverted Index)**: Maps terms to `postIds`.
 - **Social Graph DB**: Stores relationships (who is friends with whom).
@@ -103,31 +114,11 @@ graph TD
 
 ---
 
-## 6. Deep Dives (15-20 min)
+## 6. 🔬 Deep Dives (15-20 min)
 
-### Deep Dive / Data Flow
-```mermaid
-sequenceDiagram
-    participant C as Client
-    participant SA as Aggregator
-    participant SG as Social Graph
-    participant IS as Index Shards
 
-    C->>SA: Search "Vacation"
-    SA->>SG: Get User's Friends
-    SG-->>SA: [Friend1, Friend2...]
-    SA->>IS: Query "Vacation" Filter=Friends
-    IS-->>SA: Matching Posts
-    SA-->>C: Ranked Results
-```
 
-### Generic Problem Component
-```mermaid
-graph LR
-    A[Index Partitioning] --> B{Partition Strategy}
-    B --> C[Term Based]
-    B --> D[Document Based]
-```
+
 
 ### Graph Intersection (The Core Challenge)
 - **Challenge**: A simple full-text search for "birthday" will return millions of posts. Filtering them *after* retrieval to check if the author is a friend is too slow.
@@ -138,7 +129,7 @@ graph LR
 
 ---
 
-## 7. Address Key Issues (5 min)
+## 7. 🚧 Address Key Issues (5 min)
 
 ### Index Partitioning
 - Partitioning by `Term` vs `Document` vs `Author`. For social search, partitioning by `Author` (or a hash of `AuthorId`) ensures that all posts by a specific user are on the same machine, optimizing the social graph intersection.

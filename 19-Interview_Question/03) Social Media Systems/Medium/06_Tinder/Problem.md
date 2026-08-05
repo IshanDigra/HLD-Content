@@ -1,5 +1,14 @@
 # Tinder System Design
 
+> **System Overview Diagram**
+```mermaid
+graph LR
+    A[Client] -->|Requests| B(API Gateway)
+    B --> C[Core Services]
+    C --> D[(Database)]
+```
+
+
 | Step | Focus Area | Time Allocation | Key Activities |
 |------|-----------|----------------|----------------|
 | 1 | Requirements | 5-10 min | Clarify functional and non-functional requirements, identify core features |
@@ -23,7 +32,7 @@
 - [References & Original Diagrams](#references--original-diagrams)
 
 ---
-## 1. Requirements (5-10 min)
+## 1. 📋 Requirements (5-10 min)
 
 ### Functional Requirements
 - [ ] Users can create a profile with photos and bio.
@@ -57,7 +66,7 @@
 
 ---
 
-## 2. Core Entities (3-5 min)
+## 2. 🗄️ Core Entities (3-5 min)
 
 - **User**: `userId`, `location`, `preferences`, `images`
 - **Swipe**: `swiperId`, `swipeeId`, `action` (LIKE, PASS), `timestamp`
@@ -65,7 +74,7 @@
 
 ---
 
-## 3. API Design (~5 min)
+## 3. 🌐 API Design (~5 min)
 
 ### `GET /api/v1/recommendations`
 - **Response**: Array of User profiles.
@@ -76,7 +85,7 @@
 
 ---
 
-## 4. Data Flow (5-10 min)
+## 4. 🔄 Data Flow (5-10 min)
 
 1. Client requests recommendations -> Gateway -> Recommendation Engine queries Geo-index -> returns profiles.
 2. User swipes -> Gateway -> Swipe Service logs the swipe.
@@ -84,18 +93,19 @@
 
 ---
 
-## 5. High-Level Design (15-20 min)
+## 5. 🏗️ High-Level Design (15-20 min)
 
 ### High-Level Architecture
 ```mermaid
 graph TD
-    Client --> API
-    API --> RecEngine(Recommendation Engine)
-    RecEngine --> GeoDB[(Geospatial DB)]
-    API --> SwipeService
-    SwipeService --> MatchDB[(Match DB Cassandra)]
-    SwipeService --> Cache[(Redis Recent Swipes)]
+    A[Load Balancer] --> B[Service Cluster]
+    B --> C[(Primary DB)]
+    C -.->|Async Replication| D[(Read Replica)]
+    B --> E[(Redis Cache)]
 ```
+
+
+
 
 - **Profile Service**: Manages user data. Images in S3.
 - **Recommendation Engine**: Pre-computes and caches batches of profiles for users.
@@ -105,35 +115,11 @@ graph TD
 
 ---
 
-## 6. Deep Dives (15-20 min)
+## 6. 🔬 Deep Dives (15-20 min)
 
-### Deep Dive / Data Flow
-```mermaid
-sequenceDiagram
-    participant C as Client
-    participant SS as Swipe Service
-    participant CA as Cache
-    participant MQ as Kafka
 
-    C->>SS: Swipe Right on Bob
-    SS->>CA: Did Bob swipe right on me recently?
-    alt Mutual Like
-        CA-->>SS: Yes
-        SS->>MQ: Publish MatchEvent
-        SS-->>C: It's a Match!
-    else Pending
-        SS->>CA: Cache my swipe
-        SS-->>C: 200 OK
-    end
-```
 
-### Generic Problem Component
-```mermaid
-graph LR
-    A[Location Search] --> B{Geospatial Indexing}
-    B --> C[Geohash]
-    B --> D[QuadTrees]
-```
+
 
 ### Geospatial Indexing & Recommendation Batching
 - **Challenge**: Querying for users within 10 miles constantly is expensive.
@@ -148,7 +134,7 @@ graph LR
 
 ---
 
-## 7. Address Key Issues (5 min)
+## 7. 🚧 Address Key Issues (5 min)
 
 ### Fault Tolerance & Resiliency
 - Caching layer failure: Fall back to DB, but expect degraded performance. Geohash DB (Elasticsearch) must be highly replicated.

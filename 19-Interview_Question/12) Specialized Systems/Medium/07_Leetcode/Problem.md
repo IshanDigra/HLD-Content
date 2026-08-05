@@ -1,5 +1,14 @@
 # Leetcode System Design
 
+> **System Overview Diagram**
+```mermaid
+graph LR
+    A[Client] -->|Requests| B(API Gateway)
+    B --> C[Core Services]
+    C --> D[(Database)]
+```
+
+
 | Step | Focus Area | Time Allocation | Key Activities |
 |------|-----------|----------------|----------------|
 | 1 | Requirements | 5-10 min | Clarify functional and non-functional requirements, identify core features |
@@ -23,7 +32,7 @@
 - [References & Original Diagrams](#references--original-diagrams)
 
 ---
-## 1. Requirements (5-10 min)
+## 1. 📋 Requirements (5-10 min)
 
 ### Functional Requirements
 - [ ] Users can view coding problems.
@@ -61,14 +70,14 @@
 
 ---
 
-## 2. Core Entities (3-5 min)
+## 2. 🗄️ Core Entities (3-5 min)
 
 - **Problem**: `problemId`, `description`, `difficulty`, `testCasesUrl`
 - **Submission**: `submissionId`, `userId`, `problemId`, `language`, `code`, `status`, `runtime`
 
 ---
 
-## 3. API Design (~5 min)
+## 3. 🌐 API Design (~5 min)
 
 ### `POST /api/v1/submissions`
 - **Purpose**: Submit code for evaluation.
@@ -81,7 +90,7 @@
 
 ---
 
-## 4. Data Flow (5-10 min)
+## 4. 🔄 Data Flow (5-10 min)
 
 1. User submits code -> API Gateway -> Submission Service saves it to DB as `Pending`.
 2. Submission Service pushes a message to a Message Queue (e.g., RabbitMQ).
@@ -93,18 +102,19 @@
 
 ---
 
-## 5. High-Level Design (15-20 min)
+## 5. 🏗️ High-Level Design (15-20 min)
 
 ### High-Level Architecture
 ```mermaid
 graph TD
-    Client --> API
-    API --> DB[(Submissions DB)]
-    API --> Queue(RabbitMQ)
-    Queue --> WorkerNode
-    WorkerNode --> Docker(Sandbox Container)
-    WorkerNode --> S3[(Test Cases)]
+    A[Load Balancer] --> B[Service Cluster]
+    B --> C[(Primary DB)]
+    C -.->|Async Replication| D[(Read Replica)]
+    B --> E[(Redis Cache)]
 ```
+
+
+
 
 - **Submission Service**: Handles the CRUD operations for submissions.
 - **Message Queue**: Crucial for buffering submissions during contests.
@@ -114,35 +124,11 @@ graph TD
 
 ---
 
-## 6. Deep Dives (15-20 min)
+## 6. 🔬 Deep Dives (15-20 min)
 
-### Deep Dive / Data Flow
-```mermaid
-sequenceDiagram
-    participant API
-    participant Q as Message Queue
-    participant W as Worker
-    participant D as Docker Container
 
-    API->>Q: Enqueue Submission
-    W->>Q: Dequeue
-    W->>D: Run code with test cases
-    alt Time/Memory Exceeded
-        D-->>W: OS Kill Signal
-    else Success
-        D-->>W: Output
-        W->>W: Diff Output
-    end
-    W->>DB: Update Status
-```
 
-### Generic Problem Component
-```mermaid
-graph LR
-    A[Security Risk] --> B{Sandboxing}
-    B --> C[Docker/Firecracker]
-    B --> D[cgroups Resource Limits]
-```
+
 
 ### Secure Code Execution (Sandboxing)
 - **Challenge**: A user writes `os.system("rm -rf /")` or a fork bomb (`while True: os.fork()`). We must protect the host server.
@@ -157,7 +143,7 @@ graph LR
 
 ---
 
-## 7. Address Key Issues (5 min)
+## 7. 🚧 Address Key Issues (5 min)
 
 ### Test Case Optimization
 - **Challenge**: Test case files can be large (e.g., 50MB of arrays). Downloading them from S3 for every execution is slow.

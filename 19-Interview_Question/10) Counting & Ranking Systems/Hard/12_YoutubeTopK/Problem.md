@@ -1,5 +1,14 @@
 # YouTube Top K Videos System Design
 
+> **System Overview Diagram**
+```mermaid
+graph LR
+    A[Client] -->|Requests| B(API Gateway)
+    B --> C[Core Services]
+    C --> D[(Database)]
+```
+
+
 | Step | Focus Area | Time Allocation | Key Activities |
 |------|-----------|----------------|----------------|
 | 1 | Requirements | 5-10 min | Clarify functional and non-functional requirements, identify core features |
@@ -23,7 +32,7 @@
 - [References & Original Diagrams](#references--original-diagrams)
 
 ---
-## 1. Requirements (5-10 min)
+## 1. 📋 Requirements (5-10 min)
 
 ### Functional Requirements
 - [ ] Users can retrieve the top K most viewed videos of all time.
@@ -59,7 +68,7 @@
 
 ---
 
-## 2. Core Entities (3-5 min)
+## 2. 🗄️ Core Entities (3-5 min)
 
 - **Video**: `videoId`, `metadata`
 - **ViewEvent**: `eventId`, `videoId`, `timestamp`
@@ -67,7 +76,7 @@
 
 ---
 
-## 3. API Design (~5 min)
+## 3. 🌐 API Design (~5 min)
 
 ### `GET /api/v1/videos/top`
 - **Purpose**: Get Top K videos for a specific window.
@@ -84,7 +93,7 @@
 
 ---
 
-## 4. Data Flow (5-10 min)
+## 4. 🔄 Data Flow (5-10 min)
 
 1. Client watches a video. A `ViewEvent` is sent to the API Gateway.
 2. Gateway pushes the event to a Message Queue (Kafka) for async processing.
@@ -95,19 +104,19 @@
 
 ---
 
-## 5. High-Level Design (15-20 min)
+## 5. 🏗️ High-Level Design (15-20 min)
 
 ### High-Level Architecture
 ```mermaid
 graph TD
-    ViewEvent --> API
-    API --> Kafka
-    Kafka --> Flink(Apache Flink Worker)
-    Flink --> Flink
-    Flink --> Redis[(Redis ZSET Top K)]
-    Client --> API
-    API --> Redis
+    A[Load Balancer] --> B[Service Cluster]
+    B --> C[(Primary DB)]
+    C -.->|Async Replication| D[(Read Replica)]
+    B --> E[(Redis Cache)]
 ```
+
+
+
 
 - **API Gateway**: Entry point.
 - **Kafka**: High throughput distributed queue to buffer incoming view events.
@@ -117,28 +126,11 @@ graph TD
 
 ---
 
-## 6. Deep Dives (15-20 min)
+## 6. 🔬 Deep Dives (15-20 min)
 
-### Deep Dive / Data Flow
-```mermaid
-sequenceDiagram
-    participant K as Kafka
-    participant F as Flink
-    participant R as Redis
 
-    K->>F: Video View
-    F->>F: Count-Min Sketch Hash
-    F->>F: Compare with Min-Heap
-    F->>R: Flush top K every 5 seconds
-```
 
-### Generic Problem Component
-```mermaid
-graph LR
-    A[Memory Limits] --> B{Count-Min Sketch}
-    B --> C[Probabilistic Counting]
-    C --> D[O1 Memory]
-```
+
 
 ### Tumbling Windows vs Sliding Windows
 - **Tumbling Window**: Fixed, non-overlapping chunks of time (e.g., 9:00 - 10:00). Easier to compute.
@@ -156,7 +148,7 @@ graph LR
 
 ---
 
-## 7. Address Key Issues (5 min)
+## 7. 🚧 Address Key Issues (5 min)
 
 ### Fault Tolerance & Resiliency
 - Kafka provides durability. If a Flink worker dies, it can replay the stream from the last checkpoint.

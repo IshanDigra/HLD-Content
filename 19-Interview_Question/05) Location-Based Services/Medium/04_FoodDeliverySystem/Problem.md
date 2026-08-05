@@ -1,5 +1,14 @@
 # Food Delivery System Design (e.g., DoorDash, UberEats)
 
+> **System Overview Diagram**
+```mermaid
+graph LR
+    A[Client] -->|Requests| B(API Gateway)
+    B --> C[Core Services]
+    C --> D[(Database)]
+```
+
+
 | Step | Focus Area | Time Allocation | Key Activities |
 |------|-----------|----------------|----------------|
 | 1 | Requirements | 5-10 min | Clarify functional and non-functional requirements, identify core features |
@@ -23,7 +32,7 @@
 - [References & Original Diagrams](#references--original-diagrams)
 
 ---
-## 1. Requirements (5-10 min)
+## 1. 📋 Requirements (5-10 min)
 
 ### Functional Requirements
 - [ ] Users can view nearby restaurants and their menus.
@@ -61,7 +70,7 @@
 
 ---
 
-## 2. Core Entities (3-5 min)
+## 2. 🗄️ Core Entities (3-5 min)
 
 - **User**: `userId`, `location`, `paymentInfo`
 - **Restaurant**: `restaurantId`, `location`, `menuId`, `status`
@@ -70,7 +79,7 @@
 
 ---
 
-## 3. API Design (~5 min)
+## 3. 🌐 API Design (~5 min)
 
 ### `POST /api/v1/orders`
 - **Purpose**: Place a new order.
@@ -83,7 +92,7 @@
 
 ---
 
-## 4. Data Flow (5-10 min)
+## 4. 🔄 Data Flow (5-10 min)
 
 1. User opens app -> hits API Gateway -> Search Service fetches nearby restaurants from Geo-index.
 2. User places order -> Order Service validates cart -> Payment Service handles charge -> Order saved in Relational DB.
@@ -93,18 +102,19 @@
 
 ---
 
-## 5. High-Level Design (15-20 min)
+## 5. 🏗️ High-Level Design (15-20 min)
 
 ### High-Level Architecture
 ```mermaid
 graph TD
-    Driver --> LocationService
-    User --> OrderService
-    LocationService --> RedisGeo[(Redis Geospatial)]
-    OrderService --> DB[(Order DB)]
-    OrderService --> DispatchService
-    DispatchService --> RedisGeo
+    A[Load Balancer] --> B[Service Cluster]
+    B --> C[(Primary DB)]
+    C -.->|Async Replication| D[(Read Replica)]
+    B --> E[(Redis Cache)]
 ```
+
+
+
 
 - **Search Service**: ElasticSearch for fast full-text menu search.
 - **Location Service**: High-throughput ingestion of driver GPS coordinates, stored in Redis Geospatial or PostGIS.
@@ -115,32 +125,11 @@ graph TD
 
 ---
 
-## 6. Deep Dives (15-20 min)
+## 6. 🔬 Deep Dives (15-20 min)
 
-### Deep Dive / Data Flow
-```mermaid
-sequenceDiagram
-    participant U as User
-    participant O as Order Service
-    participant D as Dispatch
-    participant R as Redis Geo
 
-    U->>O: Place Order
-    O->>D: Match Driver
-    D->>R: Find Drivers in 3 Mile Radius
-    R-->>D: List of Drivers
-    D->>D: Calculate ETA
-    D->>DriverApp: Push Notification
-```
 
-### Generic Problem Component
-```mermaid
-graph LR
-    A[Order State Machine] --> B{Saga Pattern}
-    B --> C[Payment Clears]
-    B --> D[Restaurant Accepts]
-    B --> E[Driver Assigned]
-```
+
 
 ### Dispatch Algorithm & Driver Matching
 - **Challenge**: Finding the right driver quickly without starving others or making food cold.
@@ -152,7 +141,7 @@ graph LR
 
 ---
 
-## 7. Address Key Issues (5 min)
+## 7. 🚧 Address Key Issues (5 min)
 
 ### Fault Tolerance & Resiliency
 - WebSockets for driver location tracking drop frequently. The client must handle reconnects, and the backend must cache the last known location.

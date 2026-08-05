@@ -1,5 +1,14 @@
 # Google Docs System Design
 
+> **System Overview Diagram**
+```mermaid
+graph LR
+    A[Client] -->|Requests| B(API Gateway)
+    B --> C[Core Services]
+    C --> D[(Database)]
+```
+
+
 | Step | Focus Area | Time Allocation | Key Activities |
 |------|-----------|----------------|----------------|
 | 1 | Requirements | 5-10 min | Clarify functional and non-functional requirements, identify core features |
@@ -23,7 +32,7 @@
 - [References & Original Diagrams](#references--original-diagrams)
 
 ---
-## 1. Requirements (5-10 min)
+## 1. 📋 Requirements (5-10 min)
 
 ### Functional Requirements
 - [ ] Multiple users can collaboratively edit a document simultaneously.
@@ -60,7 +69,7 @@
 
 ---
 
-## 2. Core Entities (3-5 min)
+## 2. 🗄️ Core Entities (3-5 min)
 
 - **Document**: `docId`, `title`, `ownerId`, `currentVersion`
 - **User**: `userId`, `name`
@@ -68,7 +77,7 @@
 
 ---
 
-## 3. API Design (~5 min)
+## 3. 🌐 API Design (~5 min)
 
 *(Communication is primarily via WebSockets for real-time collaboration)*
 
@@ -78,7 +87,7 @@
 
 ---
 
-## 4. Data Flow (5-10 min)
+## 4. 🔄 Data Flow (5-10 min)
 
 1. Users A and B open a document. Both establish WebSocket connections to the Collaboration Server.
 2. User A types 'H'. Client sends operation to Server.
@@ -89,17 +98,19 @@
 
 ---
 
-## 5. High-Level Design (15-20 min)
+## 5. 🏗️ High-Level Design (15-20 min)
 
 ### High-Level Architecture
 ```mermaid
 graph TD
-    Client --> LB(Load Balancer - Sticky)
-    LB --> Collab(Collaboration Server)
-    Collab --> Redis[(Session Cache)]
-    Collab --> DB[(Document Storage)]
-    Collab --> OpLog[(Append-Only Ops Log)]
+    A[Load Balancer] --> B[Service Cluster]
+    B --> C[(Primary DB)]
+    C -.->|Async Replication| D[(Read Replica)]
+    B --> E[(Redis Cache)]
 ```
+
+
+
 
 - **API Gateway / Load Balancer**: Routes WebSocket connections. Needs sticky sessions (hash by `docId`) so all users editing the same doc hit the same server.
 - **Collaboration Server**: The heart of the system. Holds the document in memory and resolves conflicts using OT/CRDT.
@@ -110,29 +121,11 @@ graph TD
 
 ---
 
-## 6. Deep Dives (15-20 min)
+## 6. 🔬 Deep Dives (15-20 min)
 
-### Deep Dive / Data Flow
-```mermaid
-sequenceDiagram
-    participant C1 as Client A
-    participant C2 as Client B
-    participant CS as Collab Server
 
-    C1->>CS: Edit (Insert 'A' @ index 5)
-    C2->>CS: Edit (Delete @ index 4)
-    Note over CS: Operational Transformation (OT)
-    CS->>C1: Transformed Edit from B
-    CS->>C2: Transformed Edit from A
-```
 
-### Generic Problem Component
-```mermaid
-graph LR
-    A[Conflict Resolution] --> B{Algorithms}
-    B --> C[Operational Transformation OT]
-    B --> D[CRDTs]
-```
+
 
 ### Concurrency and Conflict Resolution (OT vs CRDT)
 - **Challenge**: User A inserts "a" at position 5. Concurrently, User B deletes the character at position 3. If applied blindly, the indexes will drift, and their screens will show different text.
@@ -150,7 +143,7 @@ graph LR
 
 ---
 
-## 7. Address Key Issues (5 min)
+## 7. 🚧 Address Key Issues (5 min)
 
 ### Fault Tolerance & Resiliency
 - If the `Collaboration Server` holding `Doc X` crashes, clients reconnect. The Load Balancer assigns a new server. The new server replays the Operations Log from the DB to reconstruct the document state in memory.

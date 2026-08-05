@@ -1,5 +1,14 @@
 # Real-Time Gaming Leaderboard System Design
 
+> **System Overview Diagram**
+```mermaid
+graph LR
+    A[Client] -->|Requests| B(API Gateway)
+    B --> C[Core Services]
+    C --> D[(Database)]
+```
+
+
 | Step | Focus Area | Time Allocation | Key Activities |
 |------|-----------|----------------|----------------|
 | 1 | Requirements | 5-10 min | Clarify functional and non-functional requirements, identify core features |
@@ -23,7 +32,7 @@
 - [References & Original Diagrams](#references--original-diagrams)
 
 ---
-## 1. Requirements (5-10 min)
+## 1. 📋 Requirements (5-10 min)
 
 ### Functional Requirements
 - [ ] System must update user scores (e.g., +1 point per win).
@@ -40,7 +49,7 @@
 
 ---
 
-## 2. Core Entities (3-5 min)
+## 2. 🗄️ Core Entities (3-5 min)
 
 - **User**: `userId`, `username`, `profilePic`
 - **Leaderboard**: `tournamentId` (e.g., `2024-03`), `userId`, `score`
@@ -48,7 +57,7 @@
 
 ---
 
-## 3. API Design (~5 min)
+## 3. 🌐 API Design (~5 min)
 
 ### `POST /api/v1/scores`
 - **Purpose**: Update a user's score after a match. (Typically called securely from a trusted game server, NOT the client, to prevent cheating).
@@ -65,7 +74,7 @@
 
 ---
 
-## 4. Data Flow (5-10 min)
+## 4. 🔄 Data Flow (5-10 min)
 
 1. Game Server finishes a match and sends a score update request to the API Gateway.
 2. Gateway routes to the `Score Service`.
@@ -75,19 +84,19 @@
 
 ---
 
-## 5. High-Level Design (15-20 min)
+## 5. 🏗️ High-Level Design (15-20 min)
 
 ### High-Level Architecture
 ```mermaid
 graph TD
-    GameServer --> API
-    API --> ScoreService
-    API --> LeaderboardService
-    ScoreService --> Redis[(Redis ZSET)]
-    LeaderboardService --> Redis
-    ScoreService --> Queue(Kafka)
-    Queue --> DB[(Postgres)]
+    A[Load Balancer] --> B[Service Cluster]
+    B --> C[(Primary DB)]
+    C -.->|Async Replication| D[(Read Replica)]
+    B --> E[(Redis Cache)]
 ```
+
+
+
 
 - **Game Servers**: Authoritative servers that validate wins and push scores to the backend.
 - **API Gateway**: Load balancing and routing.
@@ -98,30 +107,11 @@ graph TD
 
 ---
 
-## 6. Deep Dives (15-20 min)
+## 6. 🔬 Deep Dives (15-20 min)
 
-### Deep Dive / Data Flow
-```mermaid
-sequenceDiagram
-    participant GS as Game Server
-    participant API as Score API
-    participant R as Redis ZSET
-    participant DB as Postgres
 
-    GS->>API: User 123 won (+1 point)
-    API->>R: ZINCRBY leaderboard 1 123
-    R-->>API: OK
-    API->>DB: Async save match history
-    API-->>GS: 200 OK
-```
 
-### Generic Problem Component
-```mermaid
-graph LR
-    A[Fast Sorting] --> B{Redis Sorted Sets}
-    B --> C[O log N writes]
-    B --> D[O log N reads]
-```
+
 
 ### Redis Sorted Sets (`ZSET`)
 - **Challenge**: Sorting 25 million records in real-time using a traditional SQL Database (`ORDER BY score DESC`) is too slow and CPU intensive.
@@ -137,7 +127,7 @@ graph LR
 
 ---
 
-## 7. Address Key Issues (5 min)
+## 7. 🚧 Address Key Issues (5 min)
 
 ### Fault Tolerance & Resiliency
 - **Redis Crash**: If Redis goes down, the leaderboard is wiped from memory.
