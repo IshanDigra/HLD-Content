@@ -1,12 +1,5 @@
 # Uber System Design
 
-> **System Overview Diagram**
-```mermaid
-graph LR
-    A[Rider] -->|Request| B(Dispatch Engine)
-    C[Drivers] -->|GPS Pings| B
-    B -->|Match| A
-```
 
 
 | Step | Focus Area | Time Allocation | Key Activities |
@@ -22,17 +15,17 @@ graph LR
 ---
 
 ## Table of Contents
-- [1. Requirements](#1-requirements-5-10-min)
-- [2. Core Entities](#2-core-entities-3-5-min)
-- [3. API Design](#3-api-design-5-min)
-- [4. Data Flow](#4-data-flow-5-10-min)
-- [5. High-Level Design](#5-high-level-design-15-20-min)
-- [6. Deep Dives](#6-deep-dives-15-20-min)
-- [7. Address Key Issues](#7-address-key-issues-5-min)
-- [References & Original Diagrams](#references--original-diagrams)
+![1. Requirements Architecture](../../../../19-interview-questions/Images/1. Requirements.excalidraw.svg)
+![2. Core Entities Architecture](../../../../19-interview-questions/Images/2. Core Entities.excalidraw.svg)
+![3. API Design Architecture](../../../../19-interview-questions/Images/3. API Design.excalidraw.svg)
+![4. Data Flow Architecture](../../../../19-interview-questions/Images/4. Data Flow.excalidraw.svg)
+![5. High-Level Design Architecture](../../../../19-interview-questions/Images/5. High-Level Design.excalidraw.svg)
+![6. Deep Dives Architecture](../../../../19-interview-questions/Images/6. Deep Dives.excalidraw.svg)
+![7. Address Key Issues Architecture](../../../../19-interview-questions/Images/7. Address Key Issues.excalidraw.svg)
+![References & Original Diagrams Architecture](../../../../19-interview-questions/Images/References & Original Diagrams.excalidraw.svg)
 
 ---
-## 1. 📋 Requirements (5-10 min)
+## 1. Requirements (5-10 min)
 
 ### Functional Requirements
 - [ ] Users input pickup and drop-off locations to get fare estimations.
@@ -73,7 +66,7 @@ graph LR
 
 ---
 
-## 2. 🗄️ Core Entities (3-5 min)
+## 2. Core Entities (3-5 min)
 
 - **Rider**: `riderId`, `name`, `contactInfo`
 - **Driver**: `driverId`, `vehicleId`, `status` (Available, Busy, Offline), `currentLocation` (Lat/Long)
@@ -84,7 +77,7 @@ graph LR
 
 ---
 
-## 3. 🌐 API Design (~5 min)
+## 3. API Design (~5 min)
 
 ### `GET /api/v1/fare-estimate`
 - **Purpose**: Get estimated fare before booking.
@@ -103,7 +96,7 @@ graph LR
 
 ---
 
-## 4. 🔄 Data Flow (5-10 min)
+## 4. Data Flow (5-10 min)
 
 1. Driver app sends location updates to Gateway every few seconds.
 2. `Location Service` updates the Spatial Database/Cache (e.g., Redis Geospatial).
@@ -114,7 +107,7 @@ graph LR
 
 ---
 
-## 5. 🏗️ High-Level Design (15-20 min)
+## 5. High-Level Design (15-20 min)
 
 ### High-Level Architecture
 ```mermaid
@@ -141,9 +134,26 @@ graph TD
 
 ---
 
-## 6. 🔬 Deep Dives (15-20 min)
+## 6. Deep Dives (15-20 min)
 
-### 🌍 Geospatial Indexing & Tracking
+### Deep Dive / Data Flow
+```mermaid
+sequenceDiagram
+    participant Client
+    participant API_Gateway
+    participant Service
+    participant Database
+
+    Client->>API_Gateway: Request
+    API_Gateway->>Service: Route
+    Service->>Database: Query/Update
+    Database-->>Service: Result
+    Service-->>API_Gateway: Response
+    API_Gateway-->>Client: Result
+```
+
+
+### Geospatial Indexing & Tracking
 > **Challenge**: Storing and querying millions of latitude/longitude coordinates every 4 seconds to find "drivers within 3 miles" requires a specialized database, as standard B-Trees will fail.
 >
 > **Solution**:
@@ -151,23 +161,23 @@ graph TD
 > - Use **Redis Geospatial** (which uses Geohashes internally under Sorted Sets) for ultra-fast, in-memory proximity searches (`GEORADIUS`).
 > - **Trade-off**: Redis is in-memory. If it crashes, current locations are lost. Therefore, we asynchronously flush driver locations via Kafka to a persistent store (Cassandra) for historical paths and analytics.
 
-### 🔀 Concurrency and Ride Matching
+### Concurrency and Ride Matching
 > **Challenge**: Two riders in the same busy location requesting a ride at the same millisecond could be assigned the exact same driver.
 >
 > **Solution**: The Match Service must use distributed locks (e.g., Redis Redlock) or atomic database operations (e.g., `UPDATE Driver SET status = 'Busy' WHERE driverId = 123 AND status = 'Available'`) to ensure 1 Rider maps to exactly 1 Driver. If the update returns 0 affected rows, the driver was just taken, and the system tries the next best driver.
 
-## 7. 🚧 Address Key Issues (5 min)
+## 7. Address Key Issues (5 min)
 
-### 🛡️ Fault Tolerance & Resiliency
+### Fault Tolerance & Resiliency
 - Microservices must handle retry logic gracefully for intermittent network failures when talking to drivers in poor connectivity zones.
 - Use a **Circuit Breaker** pattern. If the third-party maps API (Google Maps) goes down, the system should fall back to a simple "haversine distance" (straight line) calculation to keep the app functioning.
 
-### 🔐 Security
+### Security
 - Mask actual phone numbers. Use a third-party telephony service (Twilio) to route calls between drivers and riders without exposing personal details.
 
-### 💡 Key Concepts on the Go
+### Key Concepts on the Go
 - **Surge Pricing**: Calculated asynchronously by a Spark/Flink pipeline that analyzes the ratio of open requests to available drivers in a specific Geohash bucket over a tumbling window.
 - **Write-Heavy Workload**: The system receives orders of magnitude more GPS updates than ride requests, dictating the need for high-throughput ingestion like Kafka.
 
 ## References & Original Diagrams
-- [Uber.excalidraw](./Uber.excalidraw)
+![Uber Architecture](../../../../19-interview-questions/Images/Uber.excalidraw.svg)

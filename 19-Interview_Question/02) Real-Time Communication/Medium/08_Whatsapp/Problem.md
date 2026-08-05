@@ -1,12 +1,5 @@
 # WhatsApp System Design
 
-> **System Overview Diagram**
-```mermaid
-graph LR
-    A[Client] -->|Requests| B(API Gateway)
-    B --> C[Core Services]
-    C --> D[(Database)]
-```
 
 
 | Step | Focus Area | Time Allocation | Key Activities |
@@ -22,17 +15,17 @@ graph LR
 ---
 
 ## Table of Contents
-- [1. Requirements](#1-requirements-5-10-min)
-- [2. Core Entities](#2-core-entities-3-5-min)
-- [3. API Design](#3-api-design-5-min)
-- [4. Data Flow](#4-data-flow-5-10-min)
-- [5. High-Level Design](#5-high-level-design-15-20-min)
-- [6. Deep Dives](#6-deep-dives-15-20-min)
-- [7. Address Key Issues](#7-address-key-issues-5-min)
-- [References & Original Diagrams](#references--original-diagrams)
+![1. Requirements Architecture](../../../../19-interview-questions/Images/1. Requirements.excalidraw.svg)
+![2. Core Entities Architecture](../../../../19-interview-questions/Images/2. Core Entities.excalidraw.svg)
+![3. API Design Architecture](../../../../19-interview-questions/Images/3. API Design.excalidraw.svg)
+![4. Data Flow Architecture](../../../../19-interview-questions/Images/4. Data Flow.excalidraw.svg)
+![5. High-Level Design Architecture](../../../../19-interview-questions/Images/5. High-Level Design.excalidraw.svg)
+![6. Deep Dives Architecture](../../../../19-interview-questions/Images/6. Deep Dives.excalidraw.svg)
+![7. Address Key Issues Architecture](../../../../19-interview-questions/Images/7. Address Key Issues.excalidraw.svg)
+![References & Original Diagrams Architecture](../../../../19-interview-questions/Images/References & Original Diagrams.excalidraw.svg)
 
 ---
-## 1. 📋 Requirements (5-10 min)
+## 1. Requirements (5-10 min)
 
 ### Functional Requirements
 - [ ] 1-on-1 chat and group chats.
@@ -70,7 +63,7 @@ graph LR
 
 ---
 
-## 2. 🗄️ Core Entities (3-5 min)
+## 2. Core Entities (3-5 min)
 
 - **User**: `phoneNumber`, `publicKey`, `profilePic`
 - **Message**: `messageId`, `sender`, `receiver`, `encryptedPayload`, `status`
@@ -78,7 +71,7 @@ graph LR
 
 ---
 
-## 3. 🌐 API Design (~5 min)
+## 3. API Design (~5 min)
 
 *(Primarily WebSockets/TCP. REST used only for media/profile uploads)*
 
@@ -103,7 +96,7 @@ graph LR
 
 ---
 
-## 4. 🔄 Data Flow (5-10 min)
+## 4. Data Flow (5-10 min)
 
 1. Alice sends a message to Bob. The message is encrypted on Alice's device using Bob's public key.
 2. The encrypted payload is sent via WebSocket to the Chat Server.
@@ -113,7 +106,7 @@ graph LR
 
 ---
 
-## 5. 🏗️ High-Level Design (15-20 min)
+## 5. High-Level Design (15-20 min)
 
 ### High-Level Architecture
 ```mermaid
@@ -136,7 +129,24 @@ graph TD
 
 ---
 
-## 6. 🔬 Deep Dives (15-20 min)
+## 6. Deep Dives (15-20 min)
+
+### Deep Dive / Data Flow
+```mermaid
+sequenceDiagram
+    participant Client
+    participant API_Gateway
+    participant Service
+    participant Database
+
+    Client->>API_Gateway: Request
+    API_Gateway->>Service: Route
+    Service->>Database: Query/Update
+    Database-->>Service: Result
+    Service-->>API_Gateway: Response
+    API_Gateway-->>Client: Result
+```
+
 
 
 
@@ -157,7 +167,7 @@ graph TD
 
 ---
 
-## 7. 🚧 Address Key Issues (5 min)
+## 7. Address Key Issues (5 min)
 
 ### Fault Tolerance & Resiliency
 - Connection Gateways are stateless (mostly). If a gateway dies, devices automatically reconnect to another via DNS/LB.
@@ -167,4 +177,4 @@ graph TD
 - Using Erlang/Elixir or optimized C++/Go servers to handle C10M (10 million connections per box) by minimizing memory overhead per TCP socket.
 
 ## References & Original Diagrams
-- [Whatsapp.excalidraw](./Whatsapp.excalidraw)
+![Whatsapp Architecture](../../../../19-interview-questions/Images/Whatsapp.excalidraw.svg)

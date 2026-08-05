@@ -1,12 +1,5 @@
 # PasteBin System Design
 
-> **System Overview Diagram**
-```mermaid
-graph LR
-    A[Client] -->|Requests| B(API Gateway)
-    B --> C[Core Services]
-    C --> D[(Database)]
-```
 
 
 | Step | Focus Area | Time Allocation | Key Activities |
@@ -22,17 +15,17 @@ graph LR
 ---
 
 ## Table of Contents
-- [1. Requirements](#1-requirements-5-10-min)
-- [2. Core Entities](#2-core-entities-3-5-min)
-- [3. API Design](#3-api-design-5-min)
-- [4. Data Flow](#4-data-flow-5-10-min)
-- [5. High-Level Design](#5-high-level-design-15-20-min)
-- [6. Deep Dives](#6-deep-dives-15-20-min)
-- [7. Address Key Issues](#7-address-key-issues-5-min)
-- [References & Original Diagrams](#references--original-diagrams)
+![1. Requirements Architecture](../../../../19-interview-questions/Images/1. Requirements.excalidraw.svg)
+![2. Core Entities Architecture](../../../../19-interview-questions/Images/2. Core Entities.excalidraw.svg)
+![3. API Design Architecture](../../../../19-interview-questions/Images/3. API Design.excalidraw.svg)
+![4. Data Flow Architecture](../../../../19-interview-questions/Images/4. Data Flow.excalidraw.svg)
+![5. High-Level Design Architecture](../../../../19-interview-questions/Images/5. High-Level Design.excalidraw.svg)
+![6. Deep Dives Architecture](../../../../19-interview-questions/Images/6. Deep Dives.excalidraw.svg)
+![7. Address Key Issues Architecture](../../../../19-interview-questions/Images/7. Address Key Issues.excalidraw.svg)
+![References & Original Diagrams Architecture](../../../../19-interview-questions/Images/References & Original Diagrams.excalidraw.svg)
 
 ---
-## 1. 📋 Requirements (5-10 min)
+## 1. Requirements (5-10 min)
 
 ### Functional Requirements
 - [ ] Users should be able to upload or paste text and get a unique URL to share it.
@@ -75,14 +68,14 @@ graph LR
 
 ---
 
-## 2. 🗄️ Core Entities (3-5 min)
+## 2. Core Entities (3-5 min)
 
 - **Paste**: `pasteId` (PK), `contentUrl` (if stored in S3), `userId`, `expirationDate`, `isPrivate`, `passwordHash`
 - **User** (optional): `userId`, `email`
 
 ---
 
-## 3. 🌐 API Design (~5 min)
+## 3. API Design (~5 min)
 
 ### `POST /api/v1/pastes`
 - **Purpose**: Create a new paste.
@@ -95,7 +88,7 @@ graph LR
 
 ---
 
-## 4. 🔄 Data Flow (5-10 min)
+## 4. Data Flow (5-10 min)
 
 1. **Write Flow**: Client sends text -> Gateway -> Write Service gets a unique ID -> Uploads text to Object Storage (S3) -> Saves metadata in DB -> Returns URL.
 2. **Read Flow**: Client requests ID -> Gateway -> Read Service checks Metadata DB -> Fetches text from Cache or Object Storage -> Returns text.
@@ -103,7 +96,7 @@ graph LR
 
 ---
 
-## 5. 🏗️ High-Level Design (15-20 min)
+## 5. High-Level Design (15-20 min)
 
 ### High-Level Architecture
 ```mermaid
@@ -126,7 +119,24 @@ graph TD
 
 ---
 
-## 6. 🔬 Deep Dives (15-20 min)
+## 6. Deep Dives (15-20 min)
+
+### Deep Dive / Data Flow
+```mermaid
+sequenceDiagram
+    participant Client
+    participant API_Gateway
+    participant Service
+    participant Database
+
+    Client->>API_Gateway: Request
+    API_Gateway->>Service: Route
+    Service->>Database: Query/Update
+    Database-->>Service: Result
+    Service-->>API_Gateway: Response
+    API_Gateway-->>Client: Result
+```
+
 
 
 
@@ -145,7 +155,7 @@ graph TD
 
 ---
 
-## 7. 🚧 Address Key Issues (5 min)
+## 7. Address Key Issues (5 min)
 
 ### Fault Tolerance & Resiliency
 - S3 natively provides 99.999999999% durability.
@@ -159,4 +169,4 @@ graph TD
 - Monitor storage costs, cache hit rates, and API latency.
 
 ## References & Original Diagrams
-- [PasteBin.excalidraw](./PasteBin.excalidraw)
+![PasteBin Architecture](../../../../19-interview-questions/Images/PasteBin.excalidraw.svg)

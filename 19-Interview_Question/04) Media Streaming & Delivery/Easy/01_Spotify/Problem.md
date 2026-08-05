@@ -1,12 +1,5 @@
 # Spotify System Design
 
-> **System Overview Diagram**
-```mermaid
-graph LR
-    A[Artist] -->|Uploads| B(Spotify Platform)
-    C[Users] -->|Streams| B
-    B --> D[(Song Catalog 100M+)]
-```
 
 
 | Step | Focus Area | Time Allocation | Key Activities |
@@ -22,17 +15,17 @@ graph LR
 ---
 
 ## Table of Contents
-- [1. Requirements](#1-requirements-5-10-min)
-- [2. Core Entities](#2-core-entities-3-5-min)
-- [3. API Design](#3-api-design-5-min)
-- [4. Data Flow](#4-data-flow-5-10-min)
-- [5. High-Level Design](#5-high-level-design-15-20-min)
-- [6. Deep Dives](#6-deep-dives-15-20-min)
-- [7. Address Key Issues](#7-address-key-issues-5-min)
-- [References & Original Diagrams](#references--original-diagrams)
+![1. Requirements Architecture](../../../../19-interview-questions/Images/1. Requirements.excalidraw.svg)
+![2. Core Entities Architecture](../../../../19-interview-questions/Images/2. Core Entities.excalidraw.svg)
+![3. API Design Architecture](../../../../19-interview-questions/Images/3. API Design.excalidraw.svg)
+![4. Data Flow Architecture](../../../../19-interview-questions/Images/4. Data Flow.excalidraw.svg)
+![5. High-Level Design Architecture](../../../../19-interview-questions/Images/5. High-Level Design.excalidraw.svg)
+![6. Deep Dives Architecture](../../../../19-interview-questions/Images/6. Deep Dives.excalidraw.svg)
+![7. Address Key Issues Architecture](../../../../19-interview-questions/Images/7. Address Key Issues.excalidraw.svg)
+![References & Original Diagrams Architecture](../../../../19-interview-questions/Images/References & Original Diagrams.excalidraw.svg)
 
 ---
-## 1. 📋 Requirements (5-10 min)
+## 1. Requirements (5-10 min)
 
 ### Functional Requirements
 - [ ] Artists should be able to upload songs.
@@ -91,7 +84,7 @@ graph LR
 
 ---
 
-## 2. 🗄️ Core Entities (3-5 min)
+## 2. Core Entities (3-5 min)
 
 - **User**: `userId`, `name`, `email`, `profilePicUrl`
 - **Artist**: `artistId`, `name`, `bio`
@@ -105,7 +98,7 @@ graph LR
 
 ---
 
-## 3. 🌐 API Design (~5 min)
+## 3. API Design (~5 min)
 
 ### `POST /api/v1/songs/upload`
 - **Purpose**: Let artists upload raw audio files.
@@ -123,7 +116,7 @@ graph LR
 
 ---
 
-## 4. 🔄 Data Flow (5-10 min)
+## 4. Data Flow (5-10 min)
 
 ### Upload Flow
 1. Artist client hits the API Gateway.
@@ -139,7 +132,7 @@ graph LR
 
 ---
 
-## 5. 🏗️ High-Level Design (15-20 min)
+## 5. High-Level Design (15-20 min)
 
 ### High-Level Architecture
 ```mermaid
@@ -166,9 +159,26 @@ graph TD
 
 ---
 
-## 6. 🔬 Deep Dives (15-20 min)
+## 6. Deep Dives (15-20 min)
 
-### 🎧 Content Delivery Network (CDN) & Streaming
+### Deep Dive / Data Flow
+```mermaid
+sequenceDiagram
+    participant Client
+    participant API_Gateway
+    participant Service
+    participant Database
+
+    Client->>API_Gateway: Request
+    API_Gateway->>Service: Route
+    Service->>Database: Query/Update
+    Database-->>Service: Result
+    Service-->>API_Gateway: Response
+    API_Gateway-->>Client: Result
+```
+
+
+### Content Delivery Network (CDN) & Streaming
 > **Challenge**: Serving 150 GB/s egress globally from centralized servers will cause massive network congestion, high latency, and buffering.
 >
 > **Solution**: Use Edge CDNs (e.g., Cloudflare, AWS CloudFront, or a custom CDN like Netflix's Open Connect).
@@ -176,24 +186,24 @@ graph TD
 > - The client pulls bytes directly from the geographically closest CDN node.
 > - **Trade-offs**: High financial cost for CDN bandwidth, but it offers unparalleled latency reduction and offloads 99% of the traffic from our origin servers.
 
-### 🎛️ Adaptive Bitrate Streaming (ABR)
+### Adaptive Bitrate Streaming (ABR)
 > **Challenge**: Users have wildly varying network conditions (e.g., 5G in cities vs. 3G in rural areas).
 >
 > **Solution**: When an artist uploads a song, the asynchronous transcoding pipeline converts the raw audio into multiple formats and bitrates (e.g., 64kbps, 128kbps, 320kbps Ogg/AAC). The client dynamically monitors its buffer health and network speed, automatically switching to a lower bitrate chunk if the network degrades, ensuring zero rebuffering.
 
-## 7. 🚧 Address Key Issues (5 min)
+## 7. Address Key Issues (5 min)
 
-### 🛡️ Fault Tolerance & Resiliency
+### Fault Tolerance & Resiliency
 - **Event-Driven Architecture (EDA)**: Use Kafka to decouple the heavy transcoding jobs from the upload API. If a transcoder worker crashes, the message remains in the queue and is picked up by another worker.
 - **S3 Cross-Region Replication**: Replicate the raw and transcoded audio files across multiple Availability Zones to prevent data loss.
 
-### 🔐 Security
+### Security
 - Use **Pre-signed URLs** for direct S3 uploads. This keeps heavy file upload traffic completely away from our application servers, protecting them from exhaustion attacks.
 - Enforce strict DRM (Digital Rights Management) using Widevine or FairPlay if copyright protection is required.
 
-### 💡 Key Concepts on the Go
+### Key Concepts on the Go
 - **Consistent Hashing**: Used in the caching layer to ensure that when we scale up our Redis cluster, we don't invalidate the entire cache, keeping cache hits high.
 - **Long-Tail Content**: Spotify has millions of songs that are rarely played. We only cache the "hot" 10-20% of songs in the expensive CDN edge nodes, while fetching the "cold" tail from cheaper Origin S3 storage when requested.
 
 ## References & Original Diagrams
-- [Spotify.excalidraw](./Spotify.excalidraw)
+![Spotify Architecture](../../../../19-interview-questions/Images/Spotify.excalidraw.svg)

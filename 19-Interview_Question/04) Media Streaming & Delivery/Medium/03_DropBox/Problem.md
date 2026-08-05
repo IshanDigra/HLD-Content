@@ -1,11 +1,5 @@
 # DropBox/GoogleDrive System Design
 
-> **System Overview Diagram**
-```mermaid
-graph LR
-    A[User Devices] <-->|Sync| B(Cloud Storage Platform)
-    B <--> C[(Petabytes of Blocks)]
-```
 
 
 | Step | Focus Area | Time Allocation | Key Activities |
@@ -21,17 +15,17 @@ graph LR
 ---
 
 ## Table of Contents
-- [1. Requirements](#1-requirements-5-10-min)
-- [2. Core Entities](#2-core-entities-3-5-min)
-- [3. API Design](#3-api-design-5-min)
-- [4. Data Flow](#4-data-flow-5-10-min)
-- [5. High-Level Design](#5-high-level-design-15-20-min)
-- [6. Deep Dives](#6-deep-dives-15-20-min)
-- [7. Address Key Issues](#7-address-key-issues-5-min)
-- [References & Original Diagrams](#references--original-diagrams)
+![1. Requirements Architecture](../../../../19-interview-questions/Images/1. Requirements.excalidraw.svg)
+![2. Core Entities Architecture](../../../../19-interview-questions/Images/2. Core Entities.excalidraw.svg)
+![3. API Design Architecture](../../../../19-interview-questions/Images/3. API Design.excalidraw.svg)
+![4. Data Flow Architecture](../../../../19-interview-questions/Images/4. Data Flow.excalidraw.svg)
+![5. High-Level Design Architecture](../../../../19-interview-questions/Images/5. High-Level Design.excalidraw.svg)
+![6. Deep Dives Architecture](../../../../19-interview-questions/Images/6. Deep Dives.excalidraw.svg)
+![7. Address Key Issues Architecture](../../../../19-interview-questions/Images/7. Address Key Issues.excalidraw.svg)
+![References & Original Diagrams Architecture](../../../../19-interview-questions/Images/References & Original Diagrams.excalidraw.svg)
 
 ---
-## 1. 📋 Requirements (5-10 min)
+## 1. Requirements (5-10 min)
 
 ### Functional Requirements
 - [ ] Users should be able to upload files from any device.
@@ -74,7 +68,7 @@ graph LR
 
 ---
 
-## 2. 🗄️ Core Entities (3-5 min)
+## 2. Core Entities (3-5 min)
 
 - **User**: `userId`, `name`, `email`
 - **File**: `fileId`, `s3Url`, `size`, `checksum`
@@ -86,7 +80,7 @@ graph LR
 
 ---
 
-## 3. 🌐 API Design (~5 min)
+## 3. API Design (~5 min)
 
 ### `POST /Files`
 - **Purpose**: Upload a new file.
@@ -106,7 +100,7 @@ graph LR
 
 ---
 
-## 4. 🔄 Data Flow (5-10 min)
+## 4. Data Flow (5-10 min)
 
 ### Upload & Sync Flow
 1. Client breaks large files into smaller chunks.
@@ -119,7 +113,7 @@ graph LR
 
 ---
 
-## 5. 🏗️ High-Level Design (15-20 min)
+## 5. High-Level Design (15-20 min)
 
 ### High-Level Architecture
 ```mermaid
@@ -145,9 +139,26 @@ graph TD
 
 ---
 
-## 6. 🔬 Deep Dives (15-20 min)
+## 6. Deep Dives (15-20 min)
 
-### 📦 Block Storage & Chunking
+### Deep Dive / Data Flow
+```mermaid
+sequenceDiagram
+    participant Client
+    participant API_Gateway
+    participant Service
+    participant Database
+
+    Client->>API_Gateway: Request
+    API_Gateway->>Service: Route
+    Service->>Database: Query/Update
+    Database-->>Service: Result
+    Service-->>API_Gateway: Response
+    API_Gateway-->>Client: Result
+```
+
+
+### Block Storage & Chunking
 > **Challenge**: Uploading a 10GB file natively takes too long, consumes massive memory, and if the network drops at 99%, the entire upload fails.
 >
 > **Solution**: The client application breaks files into smaller blocks (e.g., 4MB chunks).
@@ -155,26 +166,26 @@ graph TD
 > - The `Metadata DB` stores an ordered array of `block_ids` for a given file.
 > - **Trade-offs**: Increases metadata complexity significantly, but allows resumable uploads and delta syncs.
 
-### 🔄 Delta Sync & Deduplication
+### Delta Sync & Deduplication
 > **Challenge**: Minimizing bandwidth and storage when thousands of users upload the exact same viral video, or when a user changes just one sentence in a 1GB text file.
 >
 > **Solution**:
 > - **Delta Sync**: If a user modifies a file, the client only hashes and uploads the *modified* 4MB blocks, not the entire file.
 > - **Deduplication**: Calculate a SHA-256 hash for every block. Before uploading, the client asks the metadata server if the hash exists. If multiple users upload the exact same block, we store only one physical copy in S3 and reference it multiple times in the DB.
 
-## 7. 🚧 Address Key Issues (5 min)
+## 7. Address Key Issues (5 min)
 
-### 🛡️ Fault Tolerance & Resiliency
+### Fault Tolerance & Resiliency
 - **ACID Metadata**: The Metadata DB needs strict ACID guarantees (e.g., PostgreSQL or Spanner) because file permissions, paths, and block sequences cannot be eventually consistent without causing severe user corruption. Use Leader-Follower replication.
 - **S3 Durability**: Object storage natively replicates across multiple AZs offering 99.999999999% durability.
 
-### 🔐 Security
+### Security
 - Files must be encrypted at rest in S3 using AES-256.
 - Strict authorization checks in Metadata servers before granting S3 Pre-signed URLs for block downloads.
 
-### 💡 Key Concepts on the Go
+### Key Concepts on the Go
 - **Checksumming**: Essential for verifying data integrity. The client hashes the file, and the server verifies it upon receipt to ensure bits weren't flipped during transit.
 - **Long Polling vs WebSockets**: To notify clients of changes, WebSockets provide true real-time, bi-directional communication, while Long Polling is a fallback for restrictive corporate firewalls.
 
 ## References & Original Diagrams
-- [DropBox_GoogleDrive.excalidraw](./DropBox_GoogleDrive.excalidraw)
+![DropBox_GoogleDrive Architecture](../../../../19-interview-questions/Images/DropBox_GoogleDrive.excalidraw.svg)
