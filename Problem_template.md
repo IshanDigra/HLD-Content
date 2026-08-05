@@ -1,26 +1,13 @@
 # [Problem Name]
 
-| Step | Focus Area | Time Allocation | Key Activities |
-|------|-----------|----------------|----------------|
-| 1 | Requirements | 5-10 min | Clarify functional and non-functional requirements, identify core features |
-| 2 | Core Entities | 3-5 min | Identify main entities and their relationships |
-| 3 | API Design | ~5 min | Define key endpoints, methods, and data structures (keep brief) |
-| 4 | Data Flow (Optional) | 5-10 min | Map request/response flows, identify data movement patterns |
-| 5 | High-Level Design | 15-20 min | Draw system architecture, components, and their interactions |
-| 6 | Deep Dives | 15-20 min | Dive into critical components, address bottlenecks and optimizations |
-| 7 | Address Key Issues | 5 min | Handle failures, security, monitoring, and edge cases |
-
----
-
 ## Table of Contents
-- [1. Requirements](#1-requirements-5-10-min)
-- [2. Core Entities](#2-core-entities-3-5-min)
-- [3. API Design](#3-api-design-5-min)
-- [4. Data Flow](#4-data-flow-5-10-min)
-- [5. High-Level Design](#5-high-level-design-15-20-min)
-- [6. Deep Dives](#6-deep-dives-15-20-min)
-- [7. Address Key Issues](#7-address-key-issues-5-min)
-- [References & Original Diagrams](#references--original-diagrams)
+- [1. Requirements (5-10 min)](#1-requirements-5-10-min)
+- [2. Core Entities (3-5 min)](#2-core-entities-3-5-min)
+- [3. API Design (~5 min)](#3-api-design-5-min)
+- [4. Data Flow (5-10 min) *(Optional for Data Intensive Designs)*](#4-data-flow-5-10-min-optional-for-data-intensive-designs)
+- [5. High-Level Design (15-20 min)](#5-high-level-design-15-20-min)
+- [6. Deep Dives (15-20 min)](#6-deep-dives-15-20-min)
+- [7. Address Key Issues (5 min)](#7-address-key-issues-5-min)
 
 ---
 ## 1. Requirements (5-10 min)

@@ -1,28 +1,13 @@
 # Netflix System Design
 
-
-
-| Step | Focus Area | Time Allocation | Key Activities |
-|------|-----------|----------------|----------------|
-| 1 | Requirements | 5-10 min | Clarify functional and non-functional requirements, identify core features |
-| 2 | Core Entities | 3-5 min | Identify main entities and their relationships |
-| 3 | API Design | ~5 min | Define key endpoints, methods, and data structures (keep brief) |
-| 4 | Data Flow | 5-10 min | Map request/response flows, identify data movement patterns |
-| 5 | High-Level Design | 15-20 min | Draw system architecture, components, and their interactions |
-| 6 | Deep Dives | 15-20 min | Dive into critical components, address bottlenecks and optimizations |
-| 7 | Address Key Issues | 5 min | Handle failures, security, monitoring, and edge cases |
-
----
-
 ## Table of Contents
-![1. Requirements Architecture](../../../../19-interview-questions/Images/1. Requirements.excalidraw.svg)
-![2. Core Entities Architecture](../../../../19-interview-questions/Images/2. Core Entities.excalidraw.svg)
-![3. API Design Architecture](../../../../19-interview-questions/Images/3. API Design.excalidraw.svg)
-![4. Data Flow Architecture](../../../../19-interview-questions/Images/4. Data Flow.excalidraw.svg)
-![5. High-Level Design Architecture](../../../../19-interview-questions/Images/5. High-Level Design.excalidraw.svg)
-![6. Deep Dives Architecture](../../../../19-interview-questions/Images/6. Deep Dives.excalidraw.svg)
-![7. Address Key Issues Architecture](../../../../19-interview-questions/Images/7. Address Key Issues.excalidraw.svg)
-![References & Original Diagrams Architecture](../../../../19-interview-questions/Images/References & Original Diagrams.excalidraw.svg)
+- [1. Requirements (5-10 min)](#1-requirements-5-10-min)
+- [2. Core Entities (3-5 min)](#2-core-entities-3-5-min)
+- [3. API Design (~5 min)](#3-api-design-5-min)
+- [4. Data Flow (5-10 min)](#4-data-flow-5-10-min)
+- [5. High-Level Design (15-20 min)](#5-high-level-design-15-20-min)
+- [6. Deep Dives (15-20 min)](#6-deep-dives-15-20-min)
+- [7. Address Key Issues (5 min)](#7-address-key-issues-5-min)
 
 ---
 ## 1. Requirements (5-10 min)
