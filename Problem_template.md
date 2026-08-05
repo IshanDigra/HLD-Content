@@ -12,11 +12,25 @@
 
 ---
 
+## Table of Contents
+- [1. Requirements](#1-requirements-5-10-min)
+- [2. Core Entities](#2-core-entities-3-5-min)
+- [3. API Design](#3-api-design-5-min)
+- [4. Data Flow](#4-data-flow-5-10-min)
+- [5. High-Level Design](#5-high-level-design-15-20-min)
+- [6. Deep Dives](#6-deep-dives-15-20-min)
+- [7. Address Key Issues](#7-address-key-issues-5-min)
+- [References & Original Diagrams](#references--original-diagrams)
+
+---
 ## 1. Requirements (5-10 min)
 
 ### Functional Requirements
 - [ ] Feature 1 (e.g., User can upload a video)
 - [ ] Feature 2 (e.g., User can view a video)
+
+### Back-of-the-Envelope (BOE) Calculations
+*(Provide specific estimations for Users, Load/QPS, Storage, Bandwidth, and Cache here)*
 
 ### Non-Functional Requirements
 - [ ] Availability vs Consistency (CAP Theorem considerations)
@@ -62,6 +76,8 @@
 
 ## 5. High-Level Design (15-20 min)
 
+*(Insert High-Level Architecture Mermaid Diagram here)*
+
 *(Describe the core components of the system here. Mention Load Balancers, API Gateways, Microservices, Databases, Caches, Message Queues, etc.)*
 
 - **Component 1 (e.g., API Gateway)**: Handles rate limiting and routing.
@@ -71,6 +87,8 @@
 ---
 
 ## 6. Deep Dives (15-20 min)
+
+*(Insert Deep Dive / Data Flow Mermaid Diagrams here)*
 
 ### Key Component / Bottleneck
 - **Challenge**: E.g., Database write contention.
@@ -90,3 +108,7 @@
 
 ### Monitoring & Observability
 - E.g., Track latency, error rates, and system throughput using Prometheus/Grafana.
+
+
+## References & Original Diagrams
+*(Links to images/pdfs)*

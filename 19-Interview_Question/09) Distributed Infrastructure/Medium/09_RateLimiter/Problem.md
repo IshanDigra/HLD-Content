@@ -12,6 +12,17 @@
 
 ---
 
+## Table of Contents
+- [1. Requirements](#1-requirements-5-10-min)
+- [2. Core Entities](#2-core-entities-3-5-min)
+- [3. API Design](#3-api-design-5-min)
+- [4. Data Flow](#4-data-flow-5-10-min)
+- [5. High-Level Design](#5-high-level-design-15-20-min)
+- [6. Deep Dives](#6-deep-dives-15-20-min)
+- [7. Address Key Issues](#7-address-key-issues-5-min)
+- [References & Original Diagrams](#references--original-diagrams)
+
+---
 ## 1. Requirements (5-10 min)
 
 ### Functional Requirements
@@ -19,6 +30,27 @@
 - [ ] Limit HTTP requests based on configurable rules (e.g., 100 requests per minute).
 - [ ] When limits are exceeded, reject requests with HTTP 429 (Too Many Requests) and include helpful headers (e.g., `X-RateLimit-Retry-After`).
 - [ ] *Out of scope:* Complex querying/analytics on RL, long-term persistence of RL data.
+
+
+
+
+### Back-of-the-Envelope (BOE) Calculations
+**Step 1: Assumptions**
+- API requests: 10 Billion / day
+- Rule: 100 req/min per user
+
+**Step 2: Load (QPS)**
+- QPS: 10B / 100,000 ≈ 100,000 QPS globally.
+
+**Step 3: Storage (5-year plan)**
+- Local Cache rules + Distributed Redis counters.
+- Redis Storage: 10M active users * (key + counter + timestamp = 20 bytes) = 200 MB memory.
+
+**Step 4: Bandwidth**
+- Minimal payload (Redis commands).
+
+**Step 5: Cache**
+- 100% in-memory cache architecture.
 
 ### Non-Functional Requirements
 - [ ] **High Availability**: The rate limiter must not become a single point of failure.
@@ -56,6 +88,15 @@
 
 ## 5. High-Level Design (15-20 min)
 
+### High-Level Architecture
+```mermaid
+graph TD
+    Client --> API_Gateway
+    API_Gateway --> RateLimiterMiddleware
+    RateLimiterMiddleware --> Redis[(Redis Cluster)]
+    RateLimiterMiddleware --> BackendServices
+```
+
 ### Where to Place the Rate Limiter?
 - **Bad**: Alongside the server. *Issue: Servers are not aware of the global request count, making limits inaccurate.*
 - **Good**: Dedicated Service. *Issue: Latency overhead of service calls, point of failure. Need to decide on fail-open vs fail-closed.*
@@ -69,6 +110,30 @@
 ---
 
 ## 6. Deep Dives (15-20 min)
+
+### Deep Dive / Data Flow
+```mermaid
+sequenceDiagram
+    participant G as API Gateway
+    participant R as Redis
+    participant B as Backend
+
+    G->>R: EVAL Lua Script (INCR, EXPIRE)
+    R-->>G: Current Count
+    alt Count < Limit
+        G->>B: Route Request
+    else Count >= Limit
+        G-->>Client: 429 Too Many Requests
+    end
+```
+
+### Generic Problem Component
+```mermaid
+graph LR
+    A[Algorithms] --> B{Fixed Window}
+    A --> C{Sliding Window Log}
+    A --> D{Token Bucket}
+```
 
 ### Rate Limiting Algorithms
 - **Token Bucket**: Bucket holds tokens. Tokens added at fixed rate. Request takes a token. (Good for burst traffic).
@@ -94,3 +159,6 @@
 
 ### Security
 - Protect against Distributed Denial of Service (DDoS) by rate-limiting heavily on IP addresses at the Edge (CDN level) before it even hits the API Gateway.
+
+## References & Original Diagrams
+- [DistributedRateLimiting.excalidraw](./DistributedRateLimiting.excalidraw)

@@ -12,6 +12,17 @@
 
 ---
 
+## Table of Contents
+- [1. Requirements](#1-requirements-5-10-min)
+- [2. Core Entities](#2-core-entities-3-5-min)
+- [3. API Design](#3-api-design-5-min)
+- [4. Data Flow](#4-data-flow-5-10-min)
+- [5. High-Level Design](#5-high-level-design-15-20-min)
+- [6. Deep Dives](#6-deep-dives-15-20-min)
+- [7. Address Key Issues](#7-address-key-issues-5-min)
+- [References & Original Diagrams](#references--original-diagrams)
+
+---
 ## 1. Requirements (5-10 min)
 
 ### Functional Requirements
@@ -20,6 +31,28 @@
 - [ ] Restaurants can accept or reject orders.
 - [ ] System assigns delivery drivers to accepted orders.
 - [ ] Users can track driver location in real-time.
+
+
+
+
+### Back-of-the-Envelope (BOE) Calculations
+**Step 1: Assumptions**
+- Users: 10M DAU
+- Drivers: 500,000 active drivers sending GPS every 5s.
+- Orders: 2M / day.
+
+**Step 2: Load (QPS)**
+- Location Ingestion QPS: 500,000 / 5s = 100,000 QPS
+- Order QPS: 2M / 100,000 = 20 QPS (Avg), 100 QPS (Peak meal times)
+
+**Step 3: Storage (5-year plan)**
+- Heavy storage for location traces if persisted. Orders DB is relational and manageable.
+
+**Step 4: Bandwidth**
+- High ingress for GPS pings.
+
+**Step 5: Cache**
+- Geospatial index (Redis) for driver locations.
 
 ### Non-Functional Requirements
 - [ ] **High Scalability**: High throughput for location updates and concurrent orders during peak hours (lunch/dinner).
@@ -62,6 +95,17 @@
 
 ## 5. High-Level Design (15-20 min)
 
+### High-Level Architecture
+```mermaid
+graph TD
+    Driver --> LocationService
+    User --> OrderService
+    LocationService --> RedisGeo[(Redis Geospatial)]
+    OrderService --> DB[(Order DB)]
+    OrderService --> DispatchService
+    DispatchService --> RedisGeo
+```
+
 - **Search Service**: ElasticSearch for fast full-text menu search.
 - **Location Service**: High-throughput ingestion of driver GPS coordinates, stored in Redis Geospatial or PostGIS.
 - **Order & Payment Service**: Relational DB (PostgreSQL) ensuring ACID compliance for money and inventory.
@@ -72,6 +116,31 @@
 ---
 
 ## 6. Deep Dives (15-20 min)
+
+### Deep Dive / Data Flow
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant O as Order Service
+    participant D as Dispatch
+    participant R as Redis Geo
+
+    U->>O: Place Order
+    O->>D: Match Driver
+    D->>R: Find Drivers in 3 Mile Radius
+    R-->>D: List of Drivers
+    D->>D: Calculate ETA
+    D->>DriverApp: Push Notification
+```
+
+### Generic Problem Component
+```mermaid
+graph LR
+    A[Order State Machine] --> B{Saga Pattern}
+    B --> C[Payment Clears]
+    B --> D[Restaurant Accepts]
+    B --> E[Driver Assigned]
+```
 
 ### Dispatch Algorithm & Driver Matching
 - **Challenge**: Finding the right driver quickly without starving others or making food cold.
@@ -90,3 +159,6 @@
 
 ### Security
 - Secure payments using PCI-DSS compliant providers (Stripe). Do not store raw credit card numbers.
+
+## References & Original Diagrams
+- [Food Delivery System.excalidraw](./Food Delivery System.excalidraw)

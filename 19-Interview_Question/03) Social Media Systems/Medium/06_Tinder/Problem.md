@@ -12,6 +12,17 @@
 
 ---
 
+## Table of Contents
+- [1. Requirements](#1-requirements-5-10-min)
+- [2. Core Entities](#2-core-entities-3-5-min)
+- [3. API Design](#3-api-design-5-min)
+- [4. Data Flow](#4-data-flow-5-10-min)
+- [5. High-Level Design](#5-high-level-design-15-20-min)
+- [6. Deep Dives](#6-deep-dives-15-20-min)
+- [7. Address Key Issues](#7-address-key-issues-5-min)
+- [References & Original Diagrams](#references--original-diagrams)
+
+---
 ## 1. Requirements (5-10 min)
 
 ### Functional Requirements
@@ -20,6 +31,24 @@
 - [ ] Users can swipe right (like) or left (pass).
 - [ ] If both users swipe right, a "Match" is created.
 - [ ] Matched users can chat.
+
+
+
+
+### Back-of-the-Envelope (BOE) Calculations
+**Step 1: Assumptions**
+- Users: 50M DAU
+- Activity: 100 swipes/user/day
+- Payload: Swipe event ~100 bytes. Profile load includes multiple images (few MBs).
+
+**Step 2: Load (QPS)**
+- Swipe Write QPS: (50M * 100) / 100,000 ≈ 50,000 QPS
+
+**Step 3: Storage (5-year plan)**
+- Heavy image storage (S3) for profiles.
+
+**Step 4: Bandwidth**
+- High ingress/egress due to image loading.
 
 ### Non-Functional Requirements
 - [ ] **Low Latency**: Recommendations must load fast.
@@ -57,6 +86,17 @@
 
 ## 5. High-Level Design (15-20 min)
 
+### High-Level Architecture
+```mermaid
+graph TD
+    Client --> API
+    API --> RecEngine(Recommendation Engine)
+    RecEngine --> GeoDB[(Geospatial DB)]
+    API --> SwipeService
+    SwipeService --> MatchDB[(Match DB Cassandra)]
+    SwipeService --> Cache[(Redis Recent Swipes)]
+```
+
 - **Profile Service**: Manages user data. Images in S3.
 - **Recommendation Engine**: Pre-computes and caches batches of profiles for users.
 - **Geospatial DB**: Elasticsearch or Redis Geo to query users within a radius.
@@ -66,6 +106,34 @@
 ---
 
 ## 6. Deep Dives (15-20 min)
+
+### Deep Dive / Data Flow
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant SS as Swipe Service
+    participant CA as Cache
+    participant MQ as Kafka
+
+    C->>SS: Swipe Right on Bob
+    SS->>CA: Did Bob swipe right on me recently?
+    alt Mutual Like
+        CA-->>SS: Yes
+        SS->>MQ: Publish MatchEvent
+        SS-->>C: It's a Match!
+    else Pending
+        SS->>CA: Cache my swipe
+        SS-->>C: 200 OK
+    end
+```
+
+### Generic Problem Component
+```mermaid
+graph LR
+    A[Location Search] --> B{Geospatial Indexing}
+    B --> C[Geohash]
+    B --> D[QuadTrees]
+```
 
 ### Geospatial Indexing & Recommendation Batching
 - **Challenge**: Querying for users within 10 miles constantly is expensive.
@@ -84,3 +152,6 @@
 
 ### Fault Tolerance & Resiliency
 - Caching layer failure: Fall back to DB, but expect degraded performance. Geohash DB (Elasticsearch) must be highly replicated.
+
+## References & Original Diagrams
+- [Tinder.excalidraw](./Tinder.excalidraw)

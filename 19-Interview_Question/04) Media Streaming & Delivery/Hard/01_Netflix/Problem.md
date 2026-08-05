@@ -12,6 +12,17 @@
 
 ---
 
+## Table of Contents
+- [1. Requirements](#1-requirements-5-10-min)
+- [2. Core Entities](#2-core-entities-3-5-min)
+- [3. API Design](#3-api-design-5-min)
+- [4. Data Flow](#4-data-flow-5-10-min)
+- [5. High-Level Design](#5-high-level-design-15-20-min)
+- [6. Deep Dives](#6-deep-dives-15-20-min)
+- [7. Address Key Issues](#7-address-key-issues-5-min)
+- [References & Original Diagrams](#references--original-diagrams)
+
+---
 ## 1. Requirements (5-10 min)
 
 ### Functional Requirements
@@ -19,6 +30,29 @@
 - [ ] Users can stream video content seamlessly.
 - [ ] System tracks user's watch history and viewing position.
 - [ ] System provides personalized recommendations.
+
+
+
+
+### Back-of-the-Envelope (BOE) Calculations
+**Step 1: Assumptions**
+- Users: 250M Subscribers
+- Activity: 2 hours of watch time/day/user
+- Payload: Avg 3 GB per hour of HD video
+
+**Step 2: Load (QPS)**
+- Concurrent Streams (Peak): ~50M users online
+- Read QPS (Manifests): 50,000 QPS
+
+**Step 3: Storage**
+- Content library is finite (e.g. 100,000 titles).
+- Storage per title (all formats): 100 GB. Total: 10 PB. Very small compared to User Generated Content.
+
+**Step 4: Bandwidth**
+- Egress (Peak): 50M * 3GB/hr = 150 PB/hr = ~40 TB/s (Handled by Open Connect CDNs).
+
+**Step 5: Cache**
+- Netflix Open Connect Appliance (OCA) caches 100% of the video catalog at ISPs.
 
 ### Non-Functional Requirements
 - [ ] **High Scalability**: Must serve petabytes of video data daily globally.
@@ -54,6 +88,14 @@
 
 ## 5. High-Level Design (15-20 min)
 
+### High-Level Architecture
+```mermaid
+graph TD
+    Client -->|Browse| AWS(AWS Control Plane)
+    Client -->|Stream| OCA(Open Connect CDN)
+    AWS --> DB[(User/Metadata DB)]
+```
+
 - **Control Plane (AWS)**:
   - API Gateway (Zuul), User Service, Subscription Service, Recommendation Engine.
   - Databases: Cassandra (for massive watch history and user state), MySQL (for billing), ElasticSearch (for text search).
@@ -64,6 +106,24 @@
 ---
 
 ## 6. Deep Dives (15-20 min)
+
+### Deep Dive / Data Flow
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant AWS as Control Plane
+    participant OCA as CDN
+    C->>AWS: Request Play
+    AWS-->>C: Return OCA URLs
+    C->>OCA: Stream Video
+```
+
+### Generic Problem Component
+```mermaid
+graph LR
+    A[ISP Network] --> B[Netflix Edge Node]
+    B --> C[User Home Router]
+```
 
 ### Adaptive Bitrate Streaming (ABR)
 - **Challenge**: Users have wildly different internet speeds.
@@ -80,3 +140,6 @@
 ### Fault Tolerance & Resiliency
 - **Chaos Engineering**: Netflix uses Chaos Monkey to randomly kill servers in production to ensure the architecture automatically fails over without user impact.
 - **Fallback**: If an Open Connect CDN node fails, the client automatically requests the chunk from a backup CDN node or an AWS region.
+
+## References & Original Diagrams
+- [Netflix.excalidraw](./Netflix.excalidraw)

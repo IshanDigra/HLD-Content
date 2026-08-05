@@ -12,12 +12,44 @@
 
 ---
 
+## Table of Contents
+- [1. Requirements](#1-requirements-5-10-min)
+- [2. Core Entities](#2-core-entities-3-5-min)
+- [3. API Design](#3-api-design-5-min)
+- [4. Data Flow](#4-data-flow-5-10-min)
+- [5. High-Level Design](#5-high-level-design-15-20-min)
+- [6. Deep Dives](#6-deep-dives-15-20-min)
+- [7. Address Key Issues](#7-address-key-issues-5-min)
+- [References & Original Diagrams](#references--original-diagrams)
+
+---
 ## 1. Requirements (5-10 min)
 
 ### Functional Requirements
 - [ ] System must distribute incoming network traffic across multiple healthy servers.
 - [ ] System should support Layer 4 (TCP/UDP) and Layer 7 (HTTP/HTTPS) load balancing.
 - [ ] System must perform continuous Health Checks to ensure traffic is only routed to active servers.
+
+
+
+
+### Back-of-the-Envelope (BOE) Calculations
+**Step 1: Assumptions**
+- Traffic: 1M Requests Per Second (QPS)
+- Payload: Average request size ~2 KB
+
+**Step 2: Load (QPS)**
+- 1,000,000 QPS
+
+**Step 3: Storage (5-year plan)**
+- No persistent storage needed for data plane, only control plane configs.
+
+**Step 4: Bandwidth**
+- Ingress: 1M QPS * 2 KB ≈ 2 GB/s
+- Egress: 2 GB/s
+
+**Step 5: Cache**
+- Stateless data plane.
 
 ### Non-Functional Requirements
 - [ ] **High Scalability**: Must handle up to 1 million requests per second (peak traffic).
@@ -64,6 +96,16 @@
 
 ## 5. High-Level Design (15-20 min)
 
+### High-Level Architecture
+```mermaid
+graph TD
+    Client --> VIP(Virtual IP)
+    VIP --> ActiveLB(Active LB)
+    ActiveLB -. VRRP .- PassiveLB(Passive LB)
+    ActiveLB --> Server1
+    ActiveLB --> Server2
+```
+
 - **DNS Layer**: Uses DNS Load Balancing to route users to multiple physical Load Balancer IPs.
 - **Load Balancer Nodes (Active-Active)**:
   - Multiple LB nodes working together. If one fails, others take over.
@@ -75,6 +117,30 @@
 ---
 
 ## 6. Deep Dives (15-20 min)
+
+### Deep Dive / Data Flow
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant LB as Load Balancer
+    participant S as Server
+
+    C->>LB: TCP SYN
+    LB-->>C: TCP SYN-ACK
+    C->>LB: TLS Client Hello
+    LB->>LB: Terminate SSL
+    LB->>S: Forward HTTP Payload
+    S-->>LB: Response
+    LB-->>C: Response
+```
+
+### Generic Problem Component
+```mermaid
+graph LR
+    A[Single Point of Failure] --> B{Redundancy}
+    B --> C[Active/Passive Setup]
+    C --> D[VRRP failover]
+```
 
 ### Layer 4 vs Layer 7 Load Balancing
 - **Layer 4 (Transport)**: Operates on IP and Port. It does not inspect the HTTP body. Very fast, uses NAT (Network Address Translation). Good for massive scale raw TCP throughput.
@@ -97,3 +163,6 @@
 ### SSL Termination vs SSL Passthrough
 - **SSL Termination**: LB decrypts HTTPS traffic, inspects it, and forwards plain HTTP to backend servers. Saves backend CPU, but data in the internal network is unencrypted.
 - **SSL Passthrough**: LB forwards encrypted bytes to the backend. Backend does the decryption. More secure, but LB cannot do Layer 7 routing.
+
+## References & Original Diagrams
+- [Design Load Balancer | System Design Interview | AlgoMaster.io.pdf](./Design Load Balancer | System Design Interview | AlgoMaster.io.pdf)

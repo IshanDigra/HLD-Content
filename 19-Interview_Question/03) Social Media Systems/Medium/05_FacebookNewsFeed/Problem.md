@@ -12,6 +12,17 @@
 
 ---
 
+## Table of Contents
+- [1. Requirements](#1-requirements-5-10-min)
+- [2. Core Entities](#2-core-entities-3-5-min)
+- [3. API Design](#3-api-design-5-min)
+- [4. Data Flow](#4-data-flow-5-10-min)
+- [5. High-Level Design](#5-high-level-design-15-20-min)
+- [6. Deep Dives](#6-deep-dives-15-20-min)
+- [7. Address Key Issues](#7-address-key-issues-5-min)
+- [References & Original Diagrams](#references--original-diagrams)
+
+---
 ## 1. Requirements (5-10 min)
 
 ### Functional Requirements
@@ -20,6 +31,22 @@
 - [ ] Users should be able to view a feed of posts from people they follow in chronological order.
 - [ ] Users should be able to page through their feed.
 - [ ] *Out of scope:* Liking, commenting, private/restricted posts.
+
+
+
+
+### Back-of-the-Envelope (BOE) Calculations
+**Step 1: Assumptions**
+- Users: 1B DAU
+- Activity: 2 posts/user/day, 20 feeds viewed/user/day
+- Payload: Avg post 1KB
+
+**Step 2: Load (QPS)**
+- Write QPS: (1B * 2) / 100,000 = 20,000 QPS
+- Read QPS: (1B * 20) / 100,000 = 200,000 QPS
+
+**Step 3: Storage (5-year plan)**
+- Daily Storage: 20,000 QPS * 100,000s * 1KB = 2 TB/day. 5-yr = 3.6 PB.
 
 ### Non-Functional Requirements
 - [ ] **Scalability**: High scalability to support millions of users and heavy read traffic.
@@ -73,6 +100,18 @@
 
 ## 5. High-Level Design (15-20 min)
 
+### High-Level Architecture
+```mermaid
+graph TD
+    Client --> API
+    API --> FeedService
+    API --> PostService
+    PostService --> FanOutWorkers
+    FanOutWorkers --> FeedCache[(Redis Feed Cache)]
+    FeedService --> FeedCache
+    PostService --> PostDB[(Cassandra)]
+```
+
 - **API Gateway**: Handles rate limiting and auth.
 - **User Service**: Manages profiles and follow relationships.
 - **Post Service**: Manages creation and storage of posts.
@@ -86,6 +125,29 @@
 ---
 
 ## 6. Deep Dives (15-20 min)
+
+### Deep Dive / Data Flow
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant PS as Post Service
+    participant F as Fan-out Workers
+    participant RC as Redis Caches (Followers)
+
+    U->>PS: Create Post
+    PS->>PS: Save to DB
+    PS->>F: Async trigger
+    F->>F: Get follower list
+    F->>RC: Push postID to follower feed lists (Push Model)
+```
+
+### Generic Problem Component
+```mermaid
+graph LR
+    A[Feed Generation] --> B{Fan Out Strategy}
+    B --> C[Push Model for normal users]
+    B --> D[Pull Model for celebrities]
+```
 
 ### NoSQL Data Access Patterns
 - **Partition Key (PK)**: Determines the physical node holding the data.
@@ -118,3 +180,6 @@
 
 ### Security
 - Rate limit post creation to prevent spam.
+
+## References & Original Diagrams
+- [FacebookNewsFeed.excalidraw](./FacebookNewsFeed.excalidraw)

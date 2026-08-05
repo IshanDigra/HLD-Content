@@ -12,12 +12,41 @@
 
 ---
 
+## Table of Contents
+- [1. Requirements](#1-requirements-5-10-min)
+- [2. Core Entities](#2-core-entities-3-5-min)
+- [3. API Design](#3-api-design-5-min)
+- [4. Data Flow](#4-data-flow-5-10-min)
+- [5. High-Level Design](#5-high-level-design-15-20-min)
+- [6. Deep Dives](#6-deep-dives-15-20-min)
+- [7. Address Key Issues](#7-address-key-issues-5-min)
+- [References & Original Diagrams](#references--original-diagrams)
+
+---
 ## 1. Requirements (5-10 min)
 
 ### Functional Requirements
 - [ ] Users can broadcast live video.
 - [ ] Users can watch live video and post comments in real-time.
 - [ ] Comments must appear on the streamer's and other viewers' screens in real-time.
+
+
+
+
+### Back-of-the-Envelope (BOE) Calculations
+**Step 1: Assumptions**
+- Users: 50M concurrent viewers on platform, peak of 5M on a single stream
+- Activity: 10,000 comments/second on popular stream
+
+**Step 2: Load (QPS)**
+- Write QPS: 10,000 QPS
+- Read QPS (Fan-out): 10,000 comments * 5M viewers = 50 Billion Ops/Sec (IMPOSSIBLE to do naively).
+
+**Step 3: Storage (5-year plan)**
+- Low priority. Comments are ephemeral during stream, persistent later.
+
+**Step 4: Bandwidth**
+- Egress: Throttled to max 5 comments/sec per user. 5M users * 5 msgs * 100B = 2.5 GB/s.
 
 ### Non-Functional Requirements
 - [ ] **High Scalability**: Must handle massive concurrent viewers for celebrity streams (e.g., millions of viewers).
@@ -55,6 +84,16 @@
 
 ## 5. High-Level Design (15-20 min)
 
+### High-Level Architecture
+```mermaid
+graph TD
+    Viewer --> LB
+    LB --> Conn(Connection Server)
+    Conn --> CommentService
+    CommentService --> PubSub[[Pub/Sub Cluster]]
+    PubSub --> Conn
+```
+
 - **Connection Managers**: Maintain WebSocket connections with viewers.
 - **Pub/Sub (Redis/Kafka)**: Handles the high-throughput fan-out of messages.
 - **Comment Service**: Validates and stores comments.
@@ -64,6 +103,29 @@
 ---
 
 ## 6. Deep Dives (15-20 min)
+
+### Deep Dive / Data Flow
+```mermaid
+sequenceDiagram
+    participant V as Viewer (Write)
+    participant CS as Comment Service
+    participant PS as Pub/Sub
+    participant C_Servers as Conn Servers
+    participant R as Viewers (Read)
+
+    V->>CS: Post Comment
+    CS->>PS: Publish
+    Note over PS, C_Servers: Throttle & Sample (Thundering Herd)
+    PS->>C_Servers: Subsampled comments
+    C_Servers->>R: Push via WebSocket
+```
+
+### Generic Problem Component
+```mermaid
+graph LR
+    A[50 Billion Ops/Sec Fanout] --> B{Throttling / Sampling}
+    B --> C[Limit 5 comments/sec per client]
+```
 
 ### Managing Massive Fan-Out (The Thundering Herd)
 - **Challenge**: A celebrity has 1M viewers. If 10k users comment per second, pushing 10k comments to 1M viewers = 10 Billion operations/sec. This will crash the system.
@@ -79,3 +141,6 @@
 ### Fault Tolerance & Resiliency
 - Connection Manager drops: Client automatically reconnects.
 - Auto-scaling Connection Managers based on stream popularity.
+
+## References & Original Diagrams
+- [FbLiveComments.excalidraw](./FbLiveComments.excalidraw)

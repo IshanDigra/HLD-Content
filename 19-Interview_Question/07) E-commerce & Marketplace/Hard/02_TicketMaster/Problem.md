@@ -12,6 +12,17 @@
 
 ---
 
+## Table of Contents
+- [1. Requirements](#1-requirements-5-10-min)
+- [2. Core Entities](#2-core-entities-3-5-min)
+- [3. API Design](#3-api-design-5-min)
+- [4. Data Flow](#4-data-flow-5-10-min)
+- [5. High-Level Design](#5-high-level-design-15-20-min)
+- [6. Deep Dives](#6-deep-dives-15-20-min)
+- [7. Address Key Issues](#7-address-key-issues-5-min)
+- [References & Original Diagrams](#references--original-diagrams)
+
+---
 ## 1. Requirements (5-10 min)
 
 ### Functional Requirements
@@ -19,6 +30,27 @@
 - [ ] Users can view venue seating maps and available seats.
 - [ ] Users can reserve and purchase tickets.
 - [ ] System must hold tickets temporarily during checkout.
+
+
+
+
+### Back-of-the-Envelope (BOE) Calculations
+**Step 1: Assumptions**
+- Users: 10M DAU, but massive spikes for events (e.g., 5M concurrent for Taylor Swift)
+- Activity: Browsing events vs purchasing. Read/write ratio 1000:1 normally, but 10:1 during drops.
+
+**Step 2: Load (QPS)**
+- Peak Search QPS: 1,000,000 QPS
+- Peak Booking QPS: 10,000 QPS
+
+**Step 3: Storage (5-year plan)**
+- Very low storage requirements. Mostly text metadata for events and user profiles. Relational database size < 10 TB.
+
+**Step 4: Bandwidth**
+- Minimal bandwidth. HTML/JSON payloads.
+
+**Step 5: Cache**
+- Heavy caching of event details and venue maps. Seat availability is hard to cache during high contention.
 
 ### Non-Functional Requirements
 - [ ] **High Concurrency**: The system must handle massive traffic spikes (e.g., Taylor Swift tickets going on sale) without crashing.
@@ -61,6 +93,16 @@
 
 ## 5. High-Level Design (15-20 min)
 
+### High-Level Architecture
+```mermaid
+graph TD
+    Client --> CDN
+    CDN --> WaitingRoom(Queue / Waiting Room)
+    WaitingRoom --> API
+    API --> Booking(Booking Service)
+    Booking --> DB[(Postgres SQL)]
+```
+
 - **API Gateway**: Contains Rate Limiting and Virtual Waiting Room logic.
 - **Search Service**: ElasticSearch for querying events quickly.
 - **Booking/Reservation Service**: Handles the core transaction logic. Requires a highly consistent relational DB (PostgreSQL or Spanner).
@@ -71,6 +113,25 @@
 ---
 
 ## 6. Deep Dives (15-20 min)
+
+### Deep Dive / Data Flow
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant B as Booking
+    participant DB as SQL DB
+    C->>B: Reserve Seat A1
+    B->>DB: SELECT FOR UPDATE
+    DB-->>B: Locked
+    B-->>C: Reserved for 5 mins
+```
+
+### Generic Problem Component
+```mermaid
+graph LR
+    A[Millions of Users] --> B[Virtual Queue]
+    B --> C[Throttled Traffic to DB]
+```
 
 ### High Concurrency Seat Locking
 - **Challenge**: 100,000 users click "Buy" on the same 100 seats the second the clock strikes 9:00 AM.
@@ -89,3 +150,6 @@
 ### Fault Tolerance & Resiliency
 - Ticket Generation should be idempotent. If the user clicks "Pay" twice due to lag, they should only be charged once.
 - Databases must be highly available with Leader-Follower replication, but writes must go to the Leader to maintain consistency.
+
+## References & Original Diagrams
+- [BookMyShow.excalidraw](./BookMyShow.excalidraw)

@@ -12,6 +12,17 @@
 
 ---
 
+## Table of Contents
+- [1. Requirements](#1-requirements-5-10-min)
+- [2. Core Entities](#2-core-entities-3-5-min)
+- [3. API Design](#3-api-design-5-min)
+- [4. Data Flow](#4-data-flow-5-10-min)
+- [5. High-Level Design](#5-high-level-design-15-20-min)
+- [6. Deep Dives](#6-deep-dives-15-20-min)
+- [7. Address Key Issues](#7-address-key-issues-5-min)
+- [References & Original Diagrams](#references--original-diagrams)
+
+---
 ## 1. Requirements (5-10 min)
 
 ### Functional Requirements
@@ -66,6 +77,18 @@
 
 ## 5. High-Level Design (15-20 min)
 
+### High-Level Architecture
+```mermaid
+graph TD
+    GameServer --> API
+    API --> ScoreService
+    API --> LeaderboardService
+    ScoreService --> Redis[(Redis ZSET)]
+    LeaderboardService --> Redis
+    ScoreService --> Queue(Kafka)
+    Queue --> DB[(Postgres)]
+```
+
 - **Game Servers**: Authoritative servers that validate wins and push scores to the backend.
 - **API Gateway**: Load balancing and routing.
 - **Score Service**: Handles incoming score updates.
@@ -76,6 +99,29 @@
 ---
 
 ## 6. Deep Dives (15-20 min)
+
+### Deep Dive / Data Flow
+```mermaid
+sequenceDiagram
+    participant GS as Game Server
+    participant API as Score API
+    participant R as Redis ZSET
+    participant DB as Postgres
+
+    GS->>API: User 123 won (+1 point)
+    API->>R: ZINCRBY leaderboard 1 123
+    R-->>API: OK
+    API->>DB: Async save match history
+    API-->>GS: 200 OK
+```
+
+### Generic Problem Component
+```mermaid
+graph LR
+    A[Fast Sorting] --> B{Redis Sorted Sets}
+    B --> C[O log N writes]
+    B --> D[O log N reads]
+```
 
 ### Redis Sorted Sets (`ZSET`)
 - **Challenge**: Sorting 25 million records in real-time using a traditional SQL Database (`ORDER BY score DESC`) is too slow and CPU intensive.
@@ -100,3 +146,6 @@
 
 ### Security
 - Score updates must never come directly from the mobile app to prevent spoofing. The update API must only accept requests from trusted backend Game Servers with mutual TLS or strict API keys.
+
+## References & Original Diagrams
+- [Real-time Gaming Leaderboard.pdf](./Real-time Gaming Leaderboard.pdf)

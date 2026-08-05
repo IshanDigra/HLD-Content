@@ -12,6 +12,17 @@
 
 ---
 
+## Table of Contents
+- [1. Requirements](#1-requirements-5-10-min)
+- [2. Core Entities](#2-core-entities-3-5-min)
+- [3. API Design](#3-api-design-5-min)
+- [4. Data Flow](#4-data-flow-5-10-min)
+- [5. High-Level Design](#5-high-level-design-15-20-min)
+- [6. Deep Dives](#6-deep-dives-15-20-min)
+- [7. Address Key Issues](#7-address-key-issues-5-min)
+- [References & Original Diagrams](#references--original-diagrams)
+
+---
 ## 1. Requirements (5-10 min)
 
 ### Functional Requirements
@@ -19,6 +30,27 @@
 - [ ] Users can retrieve the top K videos for tumbling windows (e.g., past 1 hour, 1 day, 1 month).
 - [ ] *Constraint:* K has a practical limit (e.g., max 1000).
 - [ ] *Out of scope:* Arbitrary time windows, custom time periods.
+
+
+
+
+### Back-of-the-Envelope (BOE) Calculations
+**Step 1: Assumptions**
+- Users: 1B DAU
+- Views: 5B views/day
+- Top K queries: 50,000 QPS
+
+**Step 2: Load (QPS)**
+- Ingestion QPS: 5B / 100,000 = 50,000 QPS (views)
+
+**Step 3: Storage (5-year plan)**
+- Very high. Kafka absorbs raw logs. Pre-aggregated data stored in Redis.
+
+**Step 4: Bandwidth**
+- High internal bandwidth for stream processing.
+
+**Step 5: Cache**
+- Redis Sorted Sets cache the final Top K results for blazing fast reads.
 
 ### Non-Functional Requirements (SPARCS)
 - [ ] **Scalability**: Must handle massive scale (billions of views per day) and heavy read traffic.
@@ -65,6 +97,18 @@
 
 ## 5. High-Level Design (15-20 min)
 
+### High-Level Architecture
+```mermaid
+graph TD
+    ViewEvent --> API
+    API --> Kafka
+    Kafka --> Flink(Apache Flink Worker)
+    Flink --> Flink
+    Flink --> Redis[(Redis ZSET Top K)]
+    Client --> API
+    API --> Redis
+```
+
 - **API Gateway**: Entry point.
 - **Kafka**: High throughput distributed queue to buffer incoming view events.
 - **Stream Processors (Flink/Spark)**: Real-time workers that group views by tumbling windows and compute the Top K.
@@ -74,6 +118,27 @@
 ---
 
 ## 6. Deep Dives (15-20 min)
+
+### Deep Dive / Data Flow
+```mermaid
+sequenceDiagram
+    participant K as Kafka
+    participant F as Flink
+    participant R as Redis
+
+    K->>F: Video View
+    F->>F: Count-Min Sketch Hash
+    F->>F: Compare with Min-Heap
+    F->>R: Flush top K every 5 seconds
+```
+
+### Generic Problem Component
+```mermaid
+graph LR
+    A[Memory Limits] --> B{Count-Min Sketch}
+    B --> C[Probabilistic Counting]
+    C --> D[O1 Memory]
+```
 
 ### Tumbling Windows vs Sliding Windows
 - **Tumbling Window**: Fixed, non-overlapping chunks of time (e.g., 9:00 - 10:00). Easier to compute.
@@ -99,3 +164,6 @@
 
 ### Scalability
 - Because the read traffic for Top K is immense, the final result in Redis should be aggressively cached at the API Gateway or CDN level to avoid hitting the database entirely.
+
+## References & Original Diagrams
+- [TopKVideos.excalidraw](./TopKVideos.excalidraw)

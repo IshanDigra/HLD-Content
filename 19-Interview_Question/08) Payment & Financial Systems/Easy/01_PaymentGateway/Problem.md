@@ -12,12 +12,47 @@
 
 ---
 
+## Table of Contents
+- [1. Requirements](#1-requirements-5-10-min)
+- [2. Core Entities](#2-core-entities-3-5-min)
+- [3. API Design](#3-api-design-5-min)
+- [4. Data Flow](#4-data-flow-5-10-min)
+- [5. High-Level Design](#5-high-level-design-15-20-min)
+- [6. Deep Dives](#6-deep-dives-15-20-min)
+- [7. Address Key Issues](#7-address-key-issues-5-min)
+- [References & Original Diagrams](#references--original-diagrams)
+
+---
 ## 1. Requirements (5-10 min)
 
 ### Functional Requirements
 - [ ] Provide APIs for merchants to process credit card payments.
 - [ ] Integrate with external Bank/Card Networks (Visa, Mastercard, acquiring banks).
 - [ ] Provide Webhooks to notify merchants of payment success/failure.
+
+
+
+
+### Back-of-the-Envelope (BOE) Calculations
+**Step 1: Assumptions**
+- Transactions: 1M / day
+- Value: High Value
+- Read/write ratio: 1:1
+- Payload: Transaction ~2 KB
+
+**Step 2: Load (QPS)**
+- Write QPS: 1M / 100,000 ≈ 10 QPS
+- Peak QPS: 50 QPS
+
+**Step 3: Storage (5-year plan)**
+- Daily Storage: 10 QPS * 100,000s * 2 KB ≈ 2 GB/day
+- 5-year storage: 2 GB * 365 * 5 ≈ 3.6 TB
+
+**Step 4: Bandwidth**
+- Minimal bandwidth requirements.
+
+**Step 5: Cache**
+- Caching is avoided for transaction state due to strict consistency requirements.
 
 ### Non-Functional Requirements
 - [ ] **High Reliability / Accuracy**: Missing a payment or double charging is catastrophic.
@@ -57,6 +92,16 @@
 
 ## 5. High-Level Design (15-20 min)
 
+### High-Level Architecture
+```mermaid
+graph TD
+    Merchant --> API
+    API --> TokenVault(Secure Vault)
+    API --> PaymentCore
+    PaymentCore --> BankNetwork
+    PaymentCore --> LedgerDB[(Postgres)]
+```
+
 - **API Gateway**: Handles Auth (API Keys) and Rate Limiting.
 - **Payment Processing Service**: Core logic orchestrating the transaction.
 - **Card Tokenization Service**: Stores raw card numbers in an ultra-secure vault and returns tokens (PCI Vault).
@@ -67,6 +112,29 @@
 ---
 
 ## 6. Deep Dives (15-20 min)
+
+### Deep Dive / Data Flow
+```mermaid
+sequenceDiagram
+    participant M as Merchant
+    participant P as Payment Gateway
+    participant B as Bank API
+
+    M->>P: Charge Token (Idempotency Key X)
+    P->>P: Check DB for Key X
+    P->>B: Execute Charge
+    B-->>P: Success
+    P->>P: Store Result against Key X
+    P-->>M: Payment Successful
+```
+
+### Generic Problem Component
+```mermaid
+graph LR
+    A[PCI DSS] --> B{Tokenization}
+    B --> C[Isolate Sensitive Card Data]
+    C --> D[Return meaningless Token to Merchants]
+```
 
 ### Idempotency (Preventing Double Charges)
 - **Challenge**: The merchant's server makes a request. Our server charges the card successfully. The network drops before we reply to the merchant. The merchant retries the request. The customer is charged twice.

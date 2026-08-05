@@ -12,6 +12,17 @@
 
 ---
 
+## Table of Contents
+- [1. Requirements](#1-requirements-5-10-min)
+- [2. Core Entities](#2-core-entities-3-5-min)
+- [3. API Design](#3-api-design-5-min)
+- [4. Data Flow](#4-data-flow-5-10-min)
+- [5. High-Level Design](#5-high-level-design-15-20-min)
+- [6. Deep Dives](#6-deep-dives-15-20-min)
+- [7. Address Key Issues](#7-address-key-issues-5-min)
+- [References & Original Diagrams](#references--original-diagrams)
+
+---
 ## 1. Requirements (5-10 min)
 
 ### Functional Requirements
@@ -19,6 +30,33 @@
 - [ ] Pastes can optionally expire after a specific time.
 - [ ] Pastes can optionally be private/unlisted or password-protected.
 - [ ] Users can retrieve the pasted text using the unique URL.
+
+
+
+
+### Back-of-the-Envelope (BOE) Calculations
+**Step 1: Assumptions**
+- Users: 50M MAU
+- Activity: 2 pastes/user/day
+- Read/write ratio: 5:1 (read-heavy)
+- Payload: Average paste size ~10 KB
+
+**Step 2: Load (QPS)**
+- Write QPS: (50M * 2) / 100,000 ≈ 1,000 QPS
+- Peak write QPS: 1,000 * 2 = 2,000 QPS
+- Read QPS: 1,000 * 5 = 5,000 QPS
+
+**Step 3: Storage (5-year plan)**
+- Daily Storage: 1,000 QPS * 100,000s * 10 KB ≈ 1 TB/day
+- 5-year storage: 1 TB * 365 * 5 ≈ 1.8 PB
+
+**Step 4: Bandwidth**
+- Ingress: 1,000 QPS * 10 KB ≈ 10 MB/s
+- Egress: 5,000 QPS * 10 KB ≈ 50 MB/s
+
+**Step 5: Cache**
+- Daily reads: 5,000 QPS * 100,000s * 10 KB ≈ 5 TB/day
+- Cache capacity (80/20 rule): 5 TB * 0.20 ≈ 1 TB of RAM
 
 ### Non-Functional Requirements
 - [ ] **Scalability**: High read-to-write ratio (e.g., 5:1). Must handle large volumes of text.
@@ -58,6 +96,19 @@
 
 ## 5. High-Level Design (15-20 min)
 
+### High-Level Architecture
+```mermaid
+graph TD
+    Client --> API_Gateway
+    API_Gateway --> Paste_Service
+    API_Gateway --> Read_Service
+    Paste_Service --> S3[(Object Storage)]
+    Paste_Service --> MetaDB[(Metadata DB)]
+    Read_Service --> Cache[(Redis Cache)]
+    Read_Service --> MetaDB
+    Read_Service --> S3
+```
+
 - **API Gateway**: Routing, Rate Limiting, Auth.
 - **Key Generation Service (KGS)**: Pre-generates unique 6-8 character strings (similar to URL Shortener) to use as paste IDs.
 - **Write/Read Services**: Microservices handling the logic.
@@ -68,6 +119,33 @@
 ---
 
 ## 6. Deep Dives (15-20 min)
+
+### Deep Dive / Data Flow
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant GW as API Gateway
+    participant PS as Paste Service
+    participant S3 as Object Storage
+    participant DB as Metadata DB
+
+    C->>GW: POST /paste (text data)
+    GW->>PS: Forward Request
+    PS->>S3: Upload text as file
+    S3-->>PS: Return S3 URL
+    PS->>DB: Save S3 URL & generated ID
+    DB-->>PS: Success
+    PS-->>GW: Return Paste URL
+    GW-->>C: Response
+```
+
+### Generic Problem Component
+```mermaid
+graph LR
+    A[Database Bloat] --> B{Storage Strategy}
+    B -->|Metadata| C[Relational/NoSQL DB]
+    B -->|Raw Text| D[Object Storage S3]
+```
 
 ### Storage Strategy
 - **Challenge**: Pastes can be up to 10MB. Storing millions of 10MB strings in a relational database or Cassandra will cause massive bloat and performance degradation.
@@ -94,3 +172,6 @@
 
 ### Monitoring & Observability
 - Monitor storage costs, cache hit rates, and API latency.
+
+## References & Original Diagrams
+- [PasteBin.excalidraw](./PasteBin.excalidraw)

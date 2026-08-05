@@ -12,12 +12,47 @@
 
 ---
 
+## Table of Contents
+- [1. Requirements](#1-requirements-5-10-min)
+- [2. Core Entities](#2-core-entities-3-5-min)
+- [3. API Design](#3-api-design-5-min)
+- [4. Data Flow](#4-data-flow-5-10-min)
+- [5. High-Level Design](#5-high-level-design-15-20-min)
+- [6. Deep Dives](#6-deep-dives-15-20-min)
+- [7. Address Key Issues](#7-address-key-issues-5-min)
+- [References & Original Diagrams](#references--original-diagrams)
+
+---
 ## 1. Requirements (5-10 min)
 
 ### Functional Requirements
 - [ ] Users can upload videos.
 - [ ] Users can view, search, like, and comment on videos.
 - [ ] View counts must be updated.
+
+
+
+
+### Back-of-the-Envelope (BOE) Calculations
+**Step 1: Assumptions**
+- Users: 2B MAU -> 1B DAU
+- Activity: 5 videos watched/user/day, 1 uploaded per 1000 users
+- Payload: Avg video 50MB
+
+**Step 2: Load (QPS)**
+- Read QPS: (1B * 5) / 100,000 ≈ 50,000 QPS
+- Write QPS: 50,000 / 1000 ≈ 50 QPS
+
+**Step 3: Storage (5-year plan)**
+- Daily Storage: 50 QPS * 100,000s * 50 MB ≈ 250 TB/day
+- 5-year storage: 250 TB * 365 * 5 ≈ 450 PB
+
+**Step 4: Bandwidth**
+- Egress: 50,000 QPS * 50 MB ≈ 2.5 TB/s
+- Ingress: 50 QPS * 50 MB ≈ 2.5 GB/s
+
+**Step 5: Cache**
+- CDNs handle 99% of video egress.
 
 ### Non-Functional Requirements
 - [ ] **Scalability**: Massive storage requirements (hundreds of hours uploaded per minute) and heavy read bandwidth.
@@ -53,6 +88,15 @@
 
 ## 5. High-Level Design (15-20 min)
 
+### High-Level Architecture
+```mermaid
+graph TD
+    Client -->|Upload| API
+    API --> Queue(Kafka)
+    Queue --> Trans(Transcoder)
+    Trans --> CDN
+```
+
 - **Upload Service**: Handles resumable, chunked uploads.
 - **Transcoding/Processing Queue (Kafka)**: Distributes heavy video encoding tasks to a cluster of workers.
 - **Video Storage**: S3 for original videos, HDFS/S3 for transcoded outputs.
@@ -62,6 +106,26 @@
 ---
 
 ## 6. Deep Dives (15-20 min)
+
+### Deep Dive / Data Flow
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant A as API
+    participant CD as CDN
+    C->>A: Request Video
+    A-->>C: Return Manifest
+    C->>CD: Get Video Segments
+```
+
+### Generic Problem Component
+```mermaid
+graph LR
+    A[Raw Video] --> B[Transcoder]
+    B --> C[360p]
+    B --> D[720p]
+    B --> E[1080p]
+```
 
 ### Resumable Uploads & Transcoding
 - **Challenge**: Uploading a 10GB 4K video can fail midway. Encoding it takes massive CPU.
@@ -83,3 +147,6 @@
 
 ### Fault Tolerance
 - Replicate Metadata DB. Retry queues for failed transcoding jobs.
+
+## References & Original Diagrams
+- [Youtube.excalidraw](./Youtube.excalidraw)

@@ -12,6 +12,17 @@
 
 ---
 
+## Table of Contents
+- [1. Requirements](#1-requirements-5-10-min)
+- [2. Core Entities](#2-core-entities-3-5-min)
+- [3. API Design](#3-api-design-5-min)
+- [4. Data Flow](#4-data-flow-5-10-min)
+- [5. High-Level Design](#5-high-level-design-15-20-min)
+- [6. Deep Dives](#6-deep-dives-15-20-min)
+- [7. Address Key Issues](#7-address-key-issues-5-min)
+- [References & Original Diagrams](#references--original-diagrams)
+
+---
 ## 1. Requirements (5-10 min)
 
 ### Functional Requirements
@@ -19,6 +30,27 @@
 - [ ] Users can view hotel details, room types, and prices.
 - [ ] Users can book a room.
 - [ ] Admin/Hotels can manage inventory and pricing.
+
+
+
+
+### Back-of-the-Envelope (BOE) Calculations
+**Step 1: Assumptions**
+- Users: 10M DAU
+- Activity: Heavy reads (searches), low writes (bookings). Read/Write ratio: 1000:1.
+
+**Step 2: Load (QPS)**
+- Search QPS: 10,000 QPS
+- Booking QPS: 10 QPS
+
+**Step 3: Storage (5-year plan)**
+- Inventory records and bookings stored in relational DB. Small storage footprint.
+
+**Step 4: Bandwidth**
+- Low bandwidth requirements.
+
+**Step 5: Cache**
+- Hotel metadata highly cached. Inventory availability synchronized via CDC.
 
 ### Non-Functional Requirements
 - [ ] **High Concurrency**: Prevent double-booking when multiple users try to book the last room.
@@ -58,6 +90,18 @@
 
 ## 5. High-Level Design (15-20 min)
 
+### High-Level Architecture
+```mermaid
+graph TD
+    Client --> API
+    API --> SearchService
+    API --> BookingService
+    SearchService --> ElasticSearch[(Search Index)]
+    BookingService --> InventoryDB[(SQL DB)]
+    InventoryDB --> CDC(Debezium/Kafka)
+    CDC --> ElasticSearch
+```
+
 - **Search Service**: Backed by ElasticSearch (geo-queries, fast text search).
 - **Inventory Service**: Manages room availability calendar. Backed by Relational DB.
 - **Booking Service**: Handles the transaction logic and payment integration.
@@ -67,6 +111,29 @@
 ---
 
 ## 6. Deep Dives (15-20 min)
+
+### Deep Dive / Data Flow
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant B as Booking Service
+    participant DB as SQL DB
+
+    C->>B: Book Room
+    B->>DB: SELECT FOR UPDATE
+    DB-->>B: Locked
+    B->>DB: UPDATE inventory
+    DB-->>B: Commit
+    B-->>C: Booking Success
+```
+
+### Generic Problem Component
+```mermaid
+graph LR
+    A[Double Booking] --> B{Concurrency Control}
+    B --> C[Pessimistic Locking]
+    B --> D[Optimistic Locking]
+```
 
 ### Handling Concurrency and Double Booking
 - **Challenge**: Two users try to book the last room simultaneously.
@@ -84,3 +151,6 @@
 
 ### Fault Tolerance & Payment States
 - Use a 2-Phase Commit or Saga Pattern for distributed transactions (Booking + Payment). If payment fails, the booking must be rolled back (inventory incremented).
+
+## References & Original Diagrams
+- [HotelBooking.excalidraw](./HotelBooking.excalidraw)

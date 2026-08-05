@@ -12,6 +12,17 @@
 
 ---
 
+## Table of Contents
+- [1. Requirements](#1-requirements-5-10-min)
+- [2. Core Entities](#2-core-entities-3-5-min)
+- [3. API Design](#3-api-design-5-min)
+- [4. Data Flow](#4-data-flow-5-10-min)
+- [5. High-Level Design](#5-high-level-design-15-20-min)
+- [6. Deep Dives](#6-deep-dives-15-20-min)
+- [7. Address Key Issues](#7-address-key-issues-5-min)
+- [References & Original Diagrams](#references--original-diagrams)
+
+---
 ## 1. Requirements (5-10 min)
 
 ### Functional Requirements
@@ -20,6 +31,27 @@
 - [ ] Online status and last seen.
 - [ ] Push notifications for offline users.
 - [ ] Image/Video sharing.
+
+
+
+
+### Back-of-the-Envelope (BOE) Calculations
+**Step 1: Assumptions**
+- Users: 2B DAU
+- Activity: 50 messages/user/day
+- Payload: Text message ~200 bytes
+
+**Step 2: Load (QPS)**
+- Write QPS: (2B * 50) / 100,000 ≈ 1,000,000 QPS
+- Egress QPS: 1,000,000 QPS (1-to-1 chats)
+
+**Step 3: Storage (5-year plan)**
+- Messages are only stored temporarily until delivered.
+- Transient DB storage is relatively small (e.g., holding 5% of undelivered daily messages). 50B msgs * 5% * 200B = ~500 GB.
+- Media (S3) will be massive (petabytes) depending on retention.
+
+**Step 4: Bandwidth**
+- Ingress/Egress: ~200 MB/s for text, exponentially higher for media.
 
 ### Non-Functional Requirements
 - [ ] **High Availability**: Near 100% uptime.
@@ -74,6 +106,17 @@
 
 ## 5. High-Level Design (15-20 min)
 
+### High-Level Architecture
+```mermaid
+graph TD
+    Client --> LB
+    LB --> Gateway(Connection Gateway)
+    Gateway --> Session[(Redis Session DB)]
+    Gateway --> Router(Message Router)
+    Router --> Gateway
+    Router --> TransientDB[(Cassandra)]
+```
+
 - **Connection Gateway**: Millions of long-lived TCP/WebSocket connections. (Erlang is famously used here for managing millions of concurrent connections per server).
 - **Session/User State Service**: Redis cluster tracking which IP/Gateway a user is connected to.
 - **Message Routing Service**: Routes messages from sender's gateway to receiver's gateway.
@@ -84,6 +127,31 @@
 ---
 
 ## 6. Deep Dives (15-20 min)
+
+### Deep Dive / Data Flow
+```mermaid
+sequenceDiagram
+    participant A as Alice
+    participant G as Gateway
+    participant S as Session DB
+    participant B as Bob
+
+    A->>G: Encrypted Msg
+    G->>S: Is Bob Online?
+    S-->>G: Yes, IP Address
+    G->>G: Route to Bob's Gateway
+    G->>B: Deliver Msg
+    B-->>G: Delivered Ack
+    G-->>A: Double Tick
+```
+
+### Generic Problem Component
+```mermaid
+graph LR
+    A[Privacy] --> B{End to End Encryption}
+    B --> C[Public/Private Key Pairs]
+    B --> D[Server sees only cipher text]
+```
 
 ### End-to-End Encryption (E2EE) & Media
 - **Challenge**: The server cannot read the messages. How do we share large media files securely?
@@ -108,3 +176,6 @@
 
 ### Scaling Connections
 - Using Erlang/Elixir or optimized C++/Go servers to handle C10M (10 million connections per box) by minimizing memory overhead per TCP socket.
+
+## References & Original Diagrams
+- [Whatsapp.excalidraw](./Whatsapp.excalidraw)

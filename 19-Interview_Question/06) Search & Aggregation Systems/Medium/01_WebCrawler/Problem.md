@@ -12,6 +12,17 @@
 
 ---
 
+## Table of Contents
+- [1. Requirements](#1-requirements-5-10-min)
+- [2. Core Entities](#2-core-entities-3-5-min)
+- [3. API Design](#3-api-design-5-min)
+- [4. Data Flow](#4-data-flow-5-10-min)
+- [5. High-Level Design](#5-high-level-design-15-20-min)
+- [6. Deep Dives](#6-deep-dives-15-20-min)
+- [7. Address Key Issues](#7-address-key-issues-5-min)
+- [References & Original Diagrams](#references--original-diagrams)
+
+---
 ## 1. Requirements (5-10 min)
 
 ### Functional Requirements
@@ -19,6 +30,27 @@
 - [ ] Downloads web pages and extracts hyperlinks.
 - [ ] Adds new, unvisited URLs to a frontier queue.
 - [ ] Stores HTML content for future indexing (Search Engine).
+
+
+
+
+### Back-of-the-Envelope (BOE) Calculations
+**Step 1: Assumptions**
+- Scale: Crawling 1 Billion pages a month.
+- Payload: Avg HTML size ~100 KB.
+
+**Step 2: Load (QPS)**
+- Write QPS (Ingestion): (1B / 30) / 100,000 = 333 QPS
+
+**Step 3: Storage (5-year plan)**
+- Monthly Storage: 1B * 100 KB = 100 TB / month.
+- 5-year storage: 100 TB * 12 * 5 = 6 PB.
+
+**Step 4: Bandwidth**
+- Ingress: 333 QPS * 100 KB = 33 MB/s
+
+**Step 5: Cache**
+- Bloom filter caching requires ~1.5 GB memory for 1 Billion URLs to ensure 0.01% false positive rate.
 
 ### Non-Functional Requirements
 - [ ] **Scalability**: Ability to crawl billions of pages efficiently.
@@ -59,6 +91,19 @@
 
 ## 5. High-Level Design (15-20 min)
 
+### High-Level Architecture
+```mermaid
+graph TD
+    Frontier(URL Frontier Queue) --> Worker
+    Worker --> DNS(Custom DNS Cache)
+    Worker --> Internet
+    Worker --> Parser
+    Parser --> Dedup(Content Dedup)
+    Dedup --> S3[(HTML Blob Storage)]
+    Parser --> URLFilter(URL Dedup / Bloom Filter)
+    URLFilter --> Frontier
+```
+
 - **URL Frontier**: A complex priority queue. Usually backed by Redis or custom disk-backed queues (e.g., RabbitMQ).
 - **DNS Resolver Cache**: Resolving DNS for every page is slow. A custom, highly cached DNS resolver is required.
 - **Worker Nodes**: Fleet of stateless servers that fetch web pages.
@@ -69,6 +114,33 @@
 ---
 
 ## 6. Deep Dives (15-20 min)
+
+### Deep Dive / Data Flow
+```mermaid
+sequenceDiagram
+    participant W as Worker
+    participant P as Parser
+    participant B as Bloom Filter (Seen URLs)
+    participant F as URL Frontier
+
+    W->>P: HTML String
+    P->>P: Extract all <a href> links
+    loop Every link
+        P->>B: Check if visited
+        alt Not Visited
+            B-->>P: False
+            P->>F: Enqueue URL
+        end
+    end
+```
+
+### Generic Problem Component
+```mermaid
+graph LR
+    A[Massive Sets] --> B{Bloom Filter}
+    B --> C[Memory Efficient]
+    B --> D[False Positives possible, no False Negatives]
+```
 
 ### Politeness and URL Routing
 - **Challenge**: If the crawler fetches 1,000 links from `example.com` simultaneously, it will crash `example.com`.
@@ -89,3 +161,6 @@
 ### Fault Tolerance & Resiliency
 - Worker node crashes are common (OOM from bad HTML parsing). The URL is simply re-queued in the URL Frontier after a timeout.
 - The URL Frontier must be periodically snapshotted to disk so if the queue cluster crashes, the crawl doesn't start over from scratch.
+
+## References & Original Diagrams
+- [WebCrawler.excalidraw](./WebCrawler.excalidraw)

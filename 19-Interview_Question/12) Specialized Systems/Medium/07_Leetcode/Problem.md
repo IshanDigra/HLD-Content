@@ -12,6 +12,17 @@
 
 ---
 
+## Table of Contents
+- [1. Requirements](#1-requirements-5-10-min)
+- [2. Core Entities](#2-core-entities-3-5-min)
+- [3. API Design](#3-api-design-5-min)
+- [4. Data Flow](#4-data-flow-5-10-min)
+- [5. High-Level Design](#5-high-level-design-15-20-min)
+- [6. Deep Dives](#6-deep-dives-15-20-min)
+- [7. Address Key Issues](#7-address-key-issues-5-min)
+- [References & Original Diagrams](#references--original-diagrams)
+
+---
 ## 1. Requirements (5-10 min)
 
 ### Functional Requirements
@@ -19,6 +30,29 @@
 - [ ] Users can submit code in various languages (Python, Java, C++).
 - [ ] The system runs the code against hidden test cases.
 - [ ] The system returns the result (Accepted, Wrong Answer, Time Limit Exceeded) and runtime stats.
+
+
+
+
+### Back-of-the-Envelope (BOE) Calculations
+**Step 1: Assumptions**
+- Users: 2M DAU
+- Activity: 2 submissions/user/day
+- Contests: 50,000 simultaneous submissions in 5 minutes
+- Payload: Code ~5 KB
+
+**Step 2: Load (QPS)**
+- Write QPS (Avg): (2M * 2) / 100,000 = 40 QPS
+- Peak QPS (Contest): 50,000 / 300s = 166 QPS
+
+**Step 3: Storage (5-year plan)**
+- Test cases stored in S3. Code stored in DB/S3. Low storage requirement.
+
+**Step 4: Bandwidth**
+- Low bandwidth.
+
+**Step 5: Cache**
+- Workers cache test cases locally.
 
 ### Non-Functional Requirements
 - [ ] **Security (Sandboxing)**: Executing untrusted user code on our servers safely.
@@ -61,6 +95,17 @@
 
 ## 5. High-Level Design (15-20 min)
 
+### High-Level Architecture
+```mermaid
+graph TD
+    Client --> API
+    API --> DB[(Submissions DB)]
+    API --> Queue(RabbitMQ)
+    Queue --> WorkerNode
+    WorkerNode --> Docker(Sandbox Container)
+    WorkerNode --> S3[(Test Cases)]
+```
+
 - **Submission Service**: Handles the CRUD operations for submissions.
 - **Message Queue**: Crucial for buffering submissions during contests.
 - **Worker Pool**: A fleet of EC2 instances running Docker daemon. They consume from the Queue.
@@ -70,6 +115,34 @@
 ---
 
 ## 6. Deep Dives (15-20 min)
+
+### Deep Dive / Data Flow
+```mermaid
+sequenceDiagram
+    participant API
+    participant Q as Message Queue
+    participant W as Worker
+    participant D as Docker Container
+
+    API->>Q: Enqueue Submission
+    W->>Q: Dequeue
+    W->>D: Run code with test cases
+    alt Time/Memory Exceeded
+        D-->>W: OS Kill Signal
+    else Success
+        D-->>W: Output
+        W->>W: Diff Output
+    end
+    W->>DB: Update Status
+```
+
+### Generic Problem Component
+```mermaid
+graph LR
+    A[Security Risk] --> B{Sandboxing}
+    B --> C[Docker/Firecracker]
+    B --> D[cgroups Resource Limits]
+```
 
 ### Secure Code Execution (Sandboxing)
 - **Challenge**: A user writes `os.system("rm -rf /")` or a fork bomb (`while True: os.fork()`). We must protect the host server.
@@ -89,3 +162,6 @@
 ### Test Case Optimization
 - **Challenge**: Test case files can be large (e.g., 50MB of arrays). Downloading them from S3 for every execution is slow.
 - **Solution**: Workers should maintain a local disk cache (LRU) of recently used test case files so they can mount them instantly into the Docker containers.
+
+## References & Original Diagrams
+- [Leetcode.excalidraw](./Leetcode.excalidraw)

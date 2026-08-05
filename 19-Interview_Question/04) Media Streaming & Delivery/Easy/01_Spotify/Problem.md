@@ -12,6 +12,17 @@
 
 ---
 
+## Table of Contents
+- [1. Requirements](#1-requirements-5-10-min)
+- [2. Core Entities](#2-core-entities-3-5-min)
+- [3. API Design](#3-api-design-5-min)
+- [4. Data Flow](#4-data-flow-5-10-min)
+- [5. High-Level Design](#5-high-level-design-15-20-min)
+- [6. Deep Dives](#6-deep-dives-15-20-min)
+- [7. Address Key Issues](#7-address-key-issues-5-min)
+- [References & Original Diagrams](#references--original-diagrams)
+
+---
 ## 1. Requirements (5-10 min)
 
 ### Functional Requirements
@@ -27,6 +38,29 @@
 - **Total Song Catalog**: ~100M songs
 - **Daily Streams**: ~5B (assuming ~20 songs/user/day)
 - **Daily Song Uploads**: ~60k tracks/day
+
+
+### Back-of-the-Envelope (BOE) Calculations
+**Step 1: Assumptions**
+- Users: 500M MAU -> 200M DAU
+- Activity: 20 songs/user/day
+- Read/write ratio: 100:1 (read-heavy)
+- Payload: Average song size ~3 MB
+
+**Step 2: Load (QPS)**
+- Read QPS: (200M * 20) / 100,000 ≈ 40,000 QPS
+- Write QPS: 40,000 / 100 ≈ 400 QPS
+
+**Step 3: Storage (5-year plan)**
+- Daily Storage (New Songs): 400 QPS * 100,000s * 3 MB ≈ 120 TB/day
+- 5-year storage: 120 TB * 365 * 5 ≈ 219 PB
+
+**Step 4: Bandwidth**
+- Egress (Streams): 40,000 QPS * 3 MB ≈ 120 GB/s
+- Ingress: 400 QPS * 3 MB ≈ 1.2 GB/s
+
+**Step 5: Cache**
+- Cache capacity (20% of daily active songs): Assume 10% of catalog is hot. 10M songs * 3 MB = 30 TB cache (CDN).
 
 ### Non-Functional Requirements (SPARCS)
 - [ ] **Scalability**: System must handle 5B streams/day and immense global concurrent traffic.
@@ -98,6 +132,16 @@
 
 ## 5. High-Level Design (15-20 min)
 
+### High-Level Architecture
+```mermaid
+graph TD
+    Client -->|Play| LB(Load Balancer)
+    LB --> Gateway(API Gateway)
+    Gateway --> Meta(Metadata Service)
+    Client -->|Stream| CDN(CDN Edge Node)
+    Meta --> DB[(Postgres/NoSQL)]
+```
+
 - **Client**: Mobile/Web App.
 - **API Gateway**: Entry point for routing, authentication, and rate limiting.
 - **Upload Service**: Handles raw uploads, integrates with S3 via pre-signed URLs.
@@ -112,6 +156,26 @@
 ---
 
 ## 6. Deep Dives (15-20 min)
+
+### Deep Dive / Data Flow
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant A as API
+    participant CD as CDN
+    C->>A: Get Song URL
+    A-->>C: Return CDN Link
+    C->>CD: Request Chunks
+    CD-->>C: Stream Data
+```
+
+### Generic Problem Component
+```mermaid
+graph LR
+    A[Global Latency] --> B{CDN}
+    B --> C[Edge Server US]
+    B --> D[Edge Server EU]
+```
 
 ### CDN Integration & Streaming
 - **Challenge**: 150 GB/s egress is massive. Centralized servers will choke.
@@ -136,3 +200,6 @@
 
 ### Monitoring & Observability
 - Track stream buffer rates, startup latency, and CDN cache hit rates using Prometheus and Grafana.
+
+## References & Original Diagrams
+- [Spotify.excalidraw](./Spotify.excalidraw)

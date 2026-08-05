@@ -12,6 +12,17 @@
 
 ---
 
+## Table of Contents
+- [1. Requirements](#1-requirements-5-10-min)
+- [2. Core Entities](#2-core-entities-3-5-min)
+- [3. API Design](#3-api-design-5-min)
+- [4. Data Flow](#4-data-flow-5-10-min)
+- [5. High-Level Design](#5-high-level-design-15-20-min)
+- [6. Deep Dives](#6-deep-dives-15-20-min)
+- [7. Address Key Issues](#7-address-key-issues-5-min)
+- [References & Original Diagrams](#references--original-diagrams)
+
+---
 ## 1. Requirements (5-10 min)
 
 ### Functional Requirements
@@ -20,6 +31,29 @@
 - [ ] System matches ride requests with available drivers nearby.
 - [ ] Drivers can accept or reject ride requests.
 - [ ] *Out of Scope*: Different vehicle types, payments, ratings, chat/calling, advance scheduling.
+
+
+
+
+### Back-of-the-Envelope (BOE) Calculations
+**Step 1: Assumptions**
+- Users: 100M riders, 5M drivers
+- Activity: 20M rides per day. Drivers send location every 4 seconds.
+- Payload: GPS update ~100 bytes.
+
+**Step 2: Load (QPS)**
+- Location Update QPS: 5M active drivers / 4s = 1.25M QPS
+- Ride Request QPS: 20M / 100,000 = 200 QPS
+
+**Step 3: Storage (5-year plan)**
+- Daily location data: 1.25M QPS * 100,000s * 100B = 12.5 TB/day. (Often aggregated).
+- Rides DB: 20M * 1KB = 20 GB/day.
+
+**Step 4: Bandwidth**
+- Ingress: 1.25M * 100B = 125 MB/s
+
+**Step 5: Cache**
+- Real-time geospatial index (Redis Geo) holds current locations of 5M drivers.
 
 ### Non-Functional Requirements (SPARCS)
 - [ ] **Scalability**: High throughput in terms of concurrent ride requests and driver location updates.
@@ -73,6 +107,16 @@
 
 ## 5. High-Level Design (15-20 min)
 
+### High-Level Architecture
+```mermaid
+graph TD
+    Driver -->|GPS| API
+    Rider -->|Request Ride| API
+    API --> Loc(Location Service)
+    API --> Match(Match Service)
+    Loc --> Redis[(Redis Geo)]
+```
+
 - **Clients**: Rider App, Driver App.
 - **API Gateway**: Load balancing, routing, auth.
 - **Location Service**: Ingests high-throughput driver location updates and powers geospatial queries.
@@ -86,6 +130,25 @@
 ---
 
 ## 6. Deep Dives (15-20 min)
+
+### Deep Dive / Data Flow
+```mermaid
+sequenceDiagram
+    participant R as Rider
+    participant M as Match Service
+    participant D as Driver
+    R->>M: Request Ride
+    M->>D: Push Notification
+    D-->>M: Accept
+    M-->>R: Driver Found
+```
+
+### Generic Problem Component
+```mermaid
+graph LR
+    A[QuadTree / Geohash] --> B[Find drivers in grid]
+    B --> C[Calculate ETA]
+```
 
 ### Location Tracking & Geospatial Indexing
 - **Challenge**: Storing and querying millions of lat/long coordinates every 3-5 seconds.
@@ -106,3 +169,6 @@
 
 ### Monitoring & Observability
 - Track matching time, driver acceptance rate, and location update latency.
+
+## References & Original Diagrams
+- [Uber.excalidraw](./Uber.excalidraw)

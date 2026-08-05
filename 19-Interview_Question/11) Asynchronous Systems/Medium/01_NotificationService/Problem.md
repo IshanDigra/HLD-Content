@@ -12,12 +12,46 @@
 
 ---
 
+## Table of Contents
+- [1. Requirements](#1-requirements-5-10-min)
+- [2. Core Entities](#2-core-entities-3-5-min)
+- [3. API Design](#3-api-design-5-min)
+- [4. Data Flow](#4-data-flow-5-10-min)
+- [5. High-Level Design](#5-high-level-design-15-20-min)
+- [6. Deep Dives](#6-deep-dives-15-20-min)
+- [7. Address Key Issues](#7-address-key-issues-5-min)
+- [References & Original Diagrams](#references--original-diagrams)
+
+---
 ## 1. Requirements (5-10 min)
 
 ### Functional Requirements
 - [ ] Send notifications via multiple channels: SMS, Email, and Push Notifications.
 - [ ] Other internal microservices will call this service to send notifications.
 - [ ] Users can opt-out or set preferences for notification channels.
+
+
+
+
+### Back-of-the-Envelope (BOE) Calculations
+**Step 1: Assumptions**
+- Notifications: 100M / day
+- Types: Push, SMS, Email
+- Payload: ~1 KB per notification
+
+**Step 2: Load (QPS)**
+- Average QPS: 100M / 100,000 ≈ 1,000 QPS
+- Peak QPS: 10,000 QPS
+
+**Step 3: Storage (5-year plan)**
+- Daily Storage (Logs): 1,000 QPS * 100,000s * 1 KB = 100 GB/day
+- 5-year storage: 180 TB
+
+**Step 4: Bandwidth**
+- Egress to third parties: 1,000 QPS * 1 KB = 1 MB/s
+
+**Step 5: Cache**
+- Cache User preferences to avoid DB hits.
 
 ### Non-Functional Requirements
 - [ ] **High Throughput**: Must process millions of notifications per day.
@@ -53,6 +87,19 @@
 
 ## 5. High-Level Design (15-20 min)
 
+### High-Level Architecture
+```mermaid
+graph TD
+    InternalAPI --> Gateway
+    Gateway --> Kafka_Ingestion
+    Kafka_Ingestion --> Processor
+    Processor --> UserPref[(Redis)]
+    Processor --> SMS_Queue
+    Processor --> Email_Queue
+    SMS_Queue --> TwilioWorker
+    Email_Queue --> SendGridWorker
+```
+
 - **API Gateway / Ingestion**: Receives internal requests, does basic validation.
 - **Message Queues (Kafka/RabbitMQ)**: Critical for decoupling and buffering spikes in traffic.
 - **Notification Processor**: Handles business logic, checks preferences, limits rate.
@@ -62,6 +109,31 @@
 ---
 
 ## 6. Deep Dives (15-20 min)
+
+### Deep Dive / Data Flow
+```mermaid
+sequenceDiagram
+    participant API
+    participant P as Processor
+    participant Q as SMS Queue
+    participant W as Worker
+    participant T as Twilio
+
+    API->>P: Send Alert
+    P->>P: Render Template
+    P->>Q: Enqueue
+    W->>Q: Dequeue
+    W->>T: Call API
+    T-->>W: Success
+```
+
+### Generic Problem Component
+```mermaid
+graph LR
+    A[API Failures] --> B{Resiliency}
+    B --> C[Dead Letter Queue]
+    B --> D[Exponential Backoff]
+```
 
 ### Handling Third-Party Rate Limits and Failures
 - **Challenge**: Twilio might rate limit us or go down.
@@ -77,3 +149,6 @@
 
 ### Security
 - Internal IPs only. PII (emails/phone numbers) should be encrypted in the logs.
+
+## References & Original Diagrams
+- [Design Notification Service | System Design Interview | AlgoMaster.io.pdf](./Design Notification Service | System Design Interview | AlgoMaster.io.pdf)

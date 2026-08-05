@@ -12,6 +12,17 @@
 
 ---
 
+## Table of Contents
+- [1. Requirements](#1-requirements-5-10-min)
+- [2. Core Entities](#2-core-entities-3-5-min)
+- [3. API Design](#3-api-design-5-min)
+- [4. Data Flow](#4-data-flow-5-10-min)
+- [5. High-Level Design](#5-high-level-design-15-20-min)
+- [6. Deep Dives](#6-deep-dives-15-20-min)
+- [7. Address Key Issues](#7-address-key-issues-5-min)
+- [References & Original Diagrams](#references--original-diagrams)
+
+---
 ## 1. Requirements (5-10 min)
 
 ### Functional Requirements
@@ -19,6 +30,33 @@
 - [ ] Users should be redirected to the original long URL when they click the short URL.
 - [ ] Users should optionally be able to specify a custom short alias.
 - [ ] Links should optionally have an expiration date.
+
+
+
+
+### Back-of-the-Envelope (BOE) Calculations
+**Step 1: Assumptions**
+- Users: 100M MAU
+- Activity: 1 URL generated/user/day, 10 URLs clicked/user/day
+- Read/write ratio: 10:1 (read-heavy)
+- Payload: Average request size ~500 bytes
+
+**Step 2: Load (QPS)**
+- Write QPS: (100M * 1) / 100,000 ≈ 1,000 QPS
+- Peak write QPS: 1,000 * 2 = 2,000 QPS
+- Read QPS: 1,000 * 10 = 10,000 QPS
+
+**Step 3: Storage (5-year plan)**
+- Daily Storage: 1,000 QPS * 100,000s * 500 B ≈ 50 GB/day
+- 5-year storage: 50 GB * 365 * 5 ≈ 91 TB
+
+**Step 4: Bandwidth**
+- Ingress: 1,000 QPS * 500 B ≈ 500 KB/s
+- Egress: 10,000 QPS * 500 B ≈ 5 MB/s
+
+**Step 5: Cache**
+- Daily reads: 10,000 QPS * 100,000s * 500 B ≈ 500 GB/day
+- Cache capacity (80/20 rule): 500 GB * 0.20 ≈ 100 GB of RAM
 
 ### Non-Functional Requirements
 - [ ] **High Availability**: The redirection service must be highly available (no broken links).
@@ -57,6 +95,18 @@
 
 ## 5. High-Level Design (15-20 min)
 
+### High-Level Architecture
+```mermaid
+graph TD
+    Client --> API_Gateway
+    API_Gateway --> URL_Service
+    API_Gateway --> Redirect_Service
+    URL_Service --> DB[(Key-Value Store)]
+    Redirect_Service --> Cache[(Redis Cache)]
+    Redirect_Service --> DB
+    KGS[Key Generation Service] --> URL_Service
+```
+
 - **API Gateway**: Rate limiting, routing.
 - **Shortener Service**: Coordinates generating the unique short alias and saving it.
 - **Redirect Service**: Extremely lightweight service that checks Cache/DB and returns the `Location` header.
@@ -67,6 +117,38 @@
 ---
 
 ## 6. Deep Dives (15-20 min)
+
+### Deep Dive / Data Flow
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant GW as API Gateway
+    participant RS as Redirect Service
+    participant CA as Cache
+    participant DB as Database
+
+    C->>GW: GET /shortURL
+    GW->>RS: Forward Request
+    RS->>CA: Check Cache
+    alt Cache Miss
+        CA-->>RS: Not Found
+        RS->>DB: Query DB
+        DB-->>RS: Long URL
+        RS->>CA: Update Cache
+    else Cache Hit
+        CA-->>RS: Long URL
+    end
+    RS-->>GW: HTTP 301 Redirect to Long URL
+    GW-->>C: Redirect
+```
+
+### Generic Problem Component
+```mermaid
+graph LR
+    A[Collision Risk] --> B{Key Generation}
+    B -->|Pre-compute| C[Key Generation Service]
+    B -->|Base62 Encode| D[Shorter URLs]
+```
 
 ### Unique Short ID Generation
 - **Challenge**: Generating a unique 7-character string (Base62 encoding of an integer gives ~3.5 trillion URLs) concurrently across distributed servers without collisions.
@@ -91,3 +173,6 @@
 
 ### Monitoring & Observability
 - Track Cache Hit Ratio. If it falls, latency increases, meaning we need to scale the cache.
+
+## References & Original Diagrams
+- [UrlShortner.excalidraw](./UrlShortner.excalidraw)

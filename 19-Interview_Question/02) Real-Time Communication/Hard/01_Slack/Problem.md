@@ -12,6 +12,17 @@
 
 ---
 
+## Table of Contents
+- [1. Requirements](#1-requirements-5-10-min)
+- [2. Core Entities](#2-core-entities-3-5-min)
+- [3. API Design](#3-api-design-5-min)
+- [4. Data Flow](#4-data-flow-5-10-min)
+- [5. High-Level Design](#5-high-level-design-15-20-min)
+- [6. Deep Dives](#6-deep-dives-15-20-min)
+- [7. Address Key Issues](#7-address-key-issues-5-min)
+- [References & Original Diagrams](#references--original-diagrams)
+
+---
 ## 1. Requirements (5-10 min)
 
 ### Functional Requirements
@@ -20,6 +31,30 @@
 - [ ] Real-time message delivery and typing indicators.
 - [ ] Users can see the online/offline status of others.
 - [ ] Users can search past messages.
+
+
+
+
+### Back-of-the-Envelope (BOE) Calculations
+**Step 1: Assumptions**
+- Users: 20M DAU
+- Activity: 50 messages/user/day
+- Payload: Average message size ~200 bytes
+
+**Step 2: Load (QPS)**
+- Write QPS: (20M * 50) / 100,000 ≈ 10,000 QPS
+- Read QPS (Polling/WebSocket pushes): Much higher, dependent on active channels, approx 100,000 QPS
+
+**Step 3: Storage (5-year plan)**
+- Daily Storage: 10,000 QPS * 100,000s * 200 B ≈ 200 GB/day
+- 5-year storage: 200 GB * 365 * 5 ≈ 365 TB
+
+**Step 4: Bandwidth**
+- Ingress: 10,000 QPS * 200 B ≈ 2 MB/s
+- Egress: 100,000 QPS * 200 B ≈ 20 MB/s
+
+**Step 5: Cache**
+- Cache active channels and recent messages for fast initial load.
 
 ### Non-Functional Requirements
 - [ ] **High Availability**: Cannot lose messages; service must be up.
@@ -63,6 +98,18 @@
 
 ## 5. High-Level Design (15-20 min)
 
+### High-Level Architecture
+```mermaid
+graph TD
+    Client --> LB
+    LB --> WebSocket_Manager
+    WebSocket_Manager --> Session_Service
+    WebSocket_Manager --> Chat_Service
+    Chat_Service --> DB[(Cassandra/ScyllaDB)]
+    Chat_Service --> PubSub[[Redis Pub/Sub or Kafka]]
+    PubSub --> WebSocket_Manager
+```
+
 - **Connection Managers**: Fleet of servers holding stateful WebSocket connections with clients.
 - **Session Service**: Keeps track of which user is connected to which Connection Manager.
 - **Chat Service**: Business logic for formatting, validation, and storing messages.
@@ -76,6 +123,31 @@
 ---
 
 ## 6. Deep Dives (15-20 min)
+
+### Deep Dive / Data Flow
+```mermaid
+sequenceDiagram
+    participant U1 as User 1
+    participant WM as WebSocket Manager
+    participant CS as Chat Service
+    participant PS as Pub/Sub
+    participant U2 as User 2 (Subscribed)
+
+    U1->>WM: Send Message via WS
+    WM->>CS: Process Message
+    CS->>DB: Store in DB
+    CS->>PS: Publish to Channel Topic
+    PS->>WM: Message Event
+    WM->>U2: Push via WS to active members
+```
+
+### Generic Problem Component
+```mermaid
+graph LR
+    A[High Concurrent Connections] --> B{C10k Problem}
+    B --> C[Erlang/Go Servers]
+    B --> D[Stateful Load Balancing]
+```
 
 ### Real-Time Delivery & Connection Management
 - **Challenge**: Managing millions of concurrent TCP connections and routing messages to the right one.
@@ -99,3 +171,6 @@
 
 ### Presence Tracking (Online/Offline)
 - Clients send heartbeats (ping) every 5 seconds. If a heartbeat is missed for 30s, the Presence Service marks the user offline and broadcasts the status change to their friends/channels.
+
+## References & Original Diagrams
+- [Slack.excalidraw](./Slack.excalidraw)

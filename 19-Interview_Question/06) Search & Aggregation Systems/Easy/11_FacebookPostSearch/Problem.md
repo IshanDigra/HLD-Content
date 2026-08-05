@@ -12,12 +12,48 @@
 
 ---
 
+## Table of Contents
+- [1. Requirements](#1-requirements-5-10-min)
+- [2. Core Entities](#2-core-entities-3-5-min)
+- [3. API Design](#3-api-design-5-min)
+- [4. Data Flow](#4-data-flow-5-10-min)
+- [5. High-Level Design](#5-high-level-design-15-20-min)
+- [6. Deep Dives](#6-deep-dives-15-20-min)
+- [7. Address Key Issues](#7-address-key-issues-5-min)
+- [References & Original Diagrams](#references--original-diagrams)
+
+---
 ## 1. Requirements (5-10 min)
 
 ### Functional Requirements
 - [ ] Users can search for posts they have written or posts written by their friends.
 - [ ] Search results should be sorted by relevance or time.
 - [ ] Search results must respect privacy settings (only show posts the searcher is allowed to see).
+
+
+
+
+### Back-of-the-Envelope (BOE) Calculations
+**Step 1: Assumptions**
+- Users: 2B MAU -> 1B DAU
+- Activity: 2 searches/user/day
+- Read/write ratio: 10:1
+- Payload: Avg post size ~500 B
+
+**Step 2: Load (QPS)**
+- Read QPS: (1B * 2) / 100,000 ≈ 20,000 QPS
+- Write QPS (Indexing): 2,000 QPS
+
+**Step 3: Storage (5-year plan)**
+- Search Index Daily Storage: 2,000 QPS * 100,000s * 500B ≈ 100 GB/day
+- 5-year storage: 100 GB * 365 * 5 ≈ 180 TB
+
+**Step 4: Bandwidth**
+- Egress: 20,000 QPS * 10 KB ≈ 200 MB/s
+- Ingress: 2,000 QPS * 500 B ≈ 1 MB/s
+
+**Step 5: Cache**
+- Search queries cache for hot keywords.
 
 ### Non-Functional Requirements
 - [ ] **High Scalability**: Billions of posts and millions of searches per second.
@@ -50,6 +86,16 @@
 
 ## 5. High-Level Design (15-20 min)
 
+### High-Level Architecture
+```mermaid
+graph TD
+    Client --> API
+    API --> SearchAggregator
+    SearchAggregator --> SocialGraphDB
+    SearchAggregator --> IndexShard1[(Index A-M)]
+    SearchAggregator --> IndexShard2[(Index N-Z)]
+```
+
 - **Search Index (Inverted Index)**: Maps terms to `postIds`.
 - **Social Graph DB**: Stores relationships (who is friends with whom).
 - **Search Aggregator**: Scatters the search query across multiple index shards, gathers the results, filters them based on permissions, and sorts them.
@@ -58,6 +104,30 @@
 ---
 
 ## 6. Deep Dives (15-20 min)
+
+### Deep Dive / Data Flow
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant SA as Aggregator
+    participant SG as Social Graph
+    participant IS as Index Shards
+
+    C->>SA: Search "Vacation"
+    SA->>SG: Get User's Friends
+    SG-->>SA: [Friend1, Friend2...]
+    SA->>IS: Query "Vacation" Filter=Friends
+    IS-->>SA: Matching Posts
+    SA-->>C: Ranked Results
+```
+
+### Generic Problem Component
+```mermaid
+graph LR
+    A[Index Partitioning] --> B{Partition Strategy}
+    B --> C[Term Based]
+    B --> D[Document Based]
+```
 
 ### Graph Intersection (The Core Challenge)
 - **Challenge**: A simple full-text search for "birthday" will return millions of posts. Filtering them *after* retrieval to check if the author is a friend is too slow.
@@ -72,3 +142,6 @@
 
 ### Index Partitioning
 - Partitioning by `Term` vs `Document` vs `Author`. For social search, partitioning by `Author` (or a hash of `AuthorId`) ensures that all posts by a specific user are on the same machine, optimizing the social graph intersection.
+
+## References & Original Diagrams
+- [FbPostSearch.excalidraw](./FbPostSearch.excalidraw)
